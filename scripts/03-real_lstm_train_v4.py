@@ -5,8 +5,9 @@ from torch import nn, optim, torch
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
+from tqdm import tqdm
 
-from simple_joints_lstm.dataset_real_smol_bullet import DatasetRealSmolBullet
+from simple_joints_lstm.dataset_real_smol_bullet_v2 import DatasetRealSmolBulletV2
 from simple_joints_lstm.lstm_net_real_v3 import LstmNetRealv3
 
 try:
@@ -16,16 +17,16 @@ try:
 except:
     hyperdash_support = False
 
-HIDDEN_NODES = 256
-LSTM_LAYERS = 5
-EXPERIMENT = 8
+HIDDEN_NODES = 128
+LSTM_LAYERS = 3
+EXPERIMENT = 1
 EPOCHS = 5
-MODEL_PATH = "./trained_models/lstm_real_v4_exp{}_l{}_n{}.pt".format(
+MODEL_PATH = "./trained_models/lstm_real_vX4_exp{}_l{}_n{}.pt".format(
     EXPERIMENT,
     LSTM_LAYERS,
     HIDDEN_NODES
 )
-MODEL_PATH_BEST = "./trained_models/lstm_real_v4_exp{}_l{}_n{}_best.pt".format(
+MODEL_PATH_BEST = "./trained_models/lstm_real_vX4_exp{}_l{}_n{}_best.pt".format(
     EXPERIMENT,
     LSTM_LAYERS,
     HIDDEN_NODES
@@ -35,8 +36,8 @@ MODEL_PATH_BEST = "./trained_models/lstm_real_v4_exp{}_l{}_n{}_best.pt".format(
 BATCH_SIZE = 1
 VIZ = False
 
-dataset_train = DatasetRealSmolBullet(train=True)
-dataset_test = DatasetRealSmolBullet(train=False)
+dataset_train = DatasetRealSmolBulletV2(train=True)
+dataset_test = DatasetRealSmolBulletV2(train=False)
 
 # batch size has to be 1, otherwise the LSTM doesn't know what to do
 dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=False, num_workers=1)
@@ -54,16 +55,16 @@ if torch.cuda.is_available():
 
 net = net.float()
 
+
 def extract(dataslice):
-    x, y, epi = (Variable(dataslice["x"]).float(),
-                 Variable(dataslice["y"]).float(),
-                 dataslice["epi"].numpy()[0])
+    x, y = (Variable(dataslice["x"].transpose(0,1)).float(),
+                 Variable(dataslice["y"].transpose(0,1)).float())
 
     if torch.cuda.is_available():
         x = x.cuda()
         y = y.cuda()
 
-    return x, y, epi
+    return x, y
 
 
 def printEpochLoss(epoch_idx, epoch_len, loss_epoch, diff_epoch):
@@ -99,7 +100,7 @@ def saveModel(state, epoch, loss_epoch, diff_epoch, is_best, epoch_len):
 
 loss_function = nn.MSELoss()
 if hyperdash_support:
-    exp = Experiment("[sim2real] lstm - real v3")
+    exp = Experiment("[sim2real] lstm-realv4")
     exp.param("exp", EXPERIMENT)
     exp.param("layers", LSTM_LAYERS)
     exp.param("nodes", HIDDEN_NODES)
@@ -113,54 +114,54 @@ for epoch in np.arange(EPOCHS):
     loss_epoch = 0
     diff_epoch = 0
 
-    epi_x_old = 0
-    x_buf = []
-    y_buf = []
-
-    for epi, data in enumerate(dataloader_train):
-        x, y, epi_x = extract(data)
+    for epi_idx, epi_data in enumerate(dataloader_train):
+        x, y = extract(epi_data)
 
         net.zero_grad()
         net.zero_hidden()
         optimizer.zero_grad()
 
-        if epi_x != epi_x_old or epi == len(dataset_train) - 1:
-            x_cat = torch.cat(x_buf, 0).unsqueeze(1)
-            y_cat = torch.cat(y_buf, 0).unsqueeze(1)
+        delta = net.forward(x)
 
-            delta = net.forward(x_cat)
+        # for idx in range(len(x)):
+        #     print(idx, "=")
+        #     print("real t1_x:", np.around(x[idx, 0, 12:24].cpu().data.numpy(), 2))
+        #     print("sim_ t2_x:", np.around(x[idx, 0, :12].cpu().data.numpy(), 2))
+        #     print("action__x:", np.around(x[idx, 0, 24:].cpu().data.numpy(), 2))
+        #     print("real t2_x:",
+        #           np.around(x[idx, 0, :12].cpu().data.numpy() + y[idx, 0].cpu().data.numpy(), 2))
+        #     print("real t2_y:",
+        #           np.around(x[idx, 0, :12].cpu().data.numpy() + delta[idx, 0].cpu().data.numpy(), 2))
+        #     print("delta___x:",
+        #           np.around(y[idx, 0].cpu().data.numpy(), 3))
+        #     print("delta___y:",
+        #           np.around(delta[idx, 0].cpu().data.numpy(), 3))
+        #     print("===")
 
-            loss = loss_function(x_cat[:, :, :12] + delta, y_cat)
-            loss.backward()
-            optimizer.step()
+        loss = loss_function(delta, y)
+        loss.backward()
+        optimizer.step()
 
-            x_buf = []
-            y_buf = []
-            epi_x_old = epi_x
+        loss_episode = loss.clone().cpu().data.numpy()[0]
+        diff_episode = F.mse_loss(x[:, :, :12], x[:, :, :12] + y).clone().cpu().data.numpy()[0]
 
-            loss_episode = loss.clone().cpu().data.numpy()[0]
-            diff_episode = F.mse_loss(x_cat[:, :, :12], y_cat).clone().cpu().data.numpy()[0]
+        loss.detach_()
+        net.hidden[0].detach_()
+        net.hidden[1].detach_()
 
-            loss.detach_()
-            net.hidden[0].detach_()
-            net.hidden[1].detach_()
+        if exp is not None:
+            exp.metric("loss episode", loss_episode)
+            exp.metric("diff episode", diff_episode)
+            exp.metric("epoch", epoch)
 
-            if exp is not None:
-                exp.metric("loss episode", loss_episode)
-                exp.metric("diff episode", diff_episode)
-                exp.metric("epoch", epoch)
+        loss_epoch += loss_episode
+        diff_epoch += diff_episode
 
-            loss_epoch += loss_episode
-            diff_epoch += diff_episode
-
-        x_buf.append(x)
-        y_buf.append(y)
-
-    printEpochLoss(epoch, epi_x_old, loss_epoch, diff_epoch)
+    printEpochLoss(epoch, epi_idx, loss_epoch, diff_epoch)
     saveModel(
         state=net.state_dict(),
         epoch=epoch,
-        epoch_len=epi_x_old,
+        epoch_len=epi_idx,
         loss_epoch=loss_epoch,
         diff_epoch=diff_epoch,
         is_best=(loss_epoch < min(loss_history))
@@ -171,29 +172,16 @@ for epoch in np.arange(EPOCHS):
     loss_total = []
     diff_total = []
 
-    epi_x_old = 0
-    x_buf = []
-    y_buf = []
-    for epi, data in enumerate(dataloader_test):
-        x, y, epi_x = extract(data)
+    for epi_idx, epi_data in enumerate(dataloader_test):
+        x, y = extract(epi_data)
         net.zero_hidden()
 
-        if epi_x != epi_x_old or epi == len(dataset_test) - 1:
-            x_cat = torch.cat(x_buf, 0).unsqueeze(1)
-            y_cat = torch.cat(y_buf, 0).unsqueeze(1)
+        delta = net.forward(x)
+        loss = loss_function(delta, y)
 
-            delta = net.forward(x_cat)
-            loss = loss_function(x_cat[:, :, :12] + delta, y_cat)
+        loss_total.append(loss.clone().cpu().data.numpy()[0])
+        diff_total.append(F.mse_loss(x[:, :, :12], x[:, :, :12] + y).clone().cpu().data.numpy()[0])
 
-            loss_total.append(loss.clone().cpu().data.numpy()[0])
-            diff_total.append(F.mse_loss(x_cat[:, :, :12], y_cat).clone().cpu().data.numpy()[0])
-
-            x_buf = []
-            y_buf = []
-            epi_x_old = epi_x
-
-        x_buf.append(x)
-        y_buf.append(y)
 
     if hyperdash_support:
         exp.metric("loss test mean", np.mean(loss_total))
