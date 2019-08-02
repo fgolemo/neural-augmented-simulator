@@ -129,4 +129,6 @@ old-code/trained_models/*.pt
 !old-code/trained_models/lstm_pusher3dof_simple_5ac_3l_128n.pt
 !old-code/trained_models/lstm_pusher3dof_simple_5ac_3l_128n_best.pt
 
-nas/data/*.pkl
+nas/data/real_trajectories/*.pkl
+nas/data/real_trajectories/*.hdf5
+nas/data/trained_models/*.pth
