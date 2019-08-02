@@ -174,10 +174,14 @@ for i in range(3):
 
 
     gr = f.create_group(dataset)
-    gr.create_dataset("real_posvel", data=real_posvel, compression="lzf", chunks=True)
-    gr.create_dataset("actions", data=actions, compression="lzf", chunks=True)
-    gr.create_dataset("next_real_posvel", data=next_real_posvel, compression="lzf", chunks=True)
-    gr.create_dataset("next_sim_posvel", data=next_sim_posvel, compression="lzf", chunks=True)
+    # gr.create_dataset("real_posvel", data=real_posvel, compression="lzf", chunks=True)
+    # gr.create_dataset("actions", data=actions, compression="lzf", chunks=True)
+    # gr.create_dataset("next_real_posvel", data=next_real_posvel, compression="lzf", chunks=True)
+    # gr.create_dataset("next_sim_posvel", data=next_sim_posvel, compression="lzf", chunks=True)
+    gr.create_dataset("real_posvel", data=real_posvel, chunks=True)
+    gr.create_dataset("actions", data=actions, chunks=True)
+    gr.create_dataset("next_real_posvel", data=next_real_posvel, chunks=True)
+    gr.create_dataset("next_sim_posvel", data=next_sim_posvel, chunks=True)
 
     # JUST VERIFYING THAT THE RESHAPING WAS SUCCESSFUL - START
 
