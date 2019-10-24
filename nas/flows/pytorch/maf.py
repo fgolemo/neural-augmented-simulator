@@ -151,8 +151,9 @@ class BatchNorm(nn.Module):
 
         # compute log_abs_det_jacobian (cf RealNVP paper)
         log_abs_det_jacobian = self.log_gamma - 0.5 * torch.log(var + self.eps)
+        detach_t = lambda x : x.detach().cpu().numpy()
         print('in sum log var {:6.3f} ; out sum log var {:6.3f}; sum log det {:8.3f}; mean log_gamma {:5.3f}; mean beta {:5.3f}'.format(
-            (var + self.eps).log().sum().data.numpy(), y.var(0).log().sum().data.numpy(), log_abs_det_jacobian.mean(0).item(), self.log_gamma.mean(), self.beta.mean()))
+            detach_t((var + self.eps).log().sum()), detach_t(y.var(0).log().sum()), log_abs_det_jacobian.mean(0).item(), self.log_gamma.mean(), self.beta.mean()))
         return y, log_abs_det_jacobian.expand_as(x)
 
     def inverse(self, y, cond_y=None):
