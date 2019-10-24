@@ -453,15 +453,11 @@ def plot_dist_sample(data, ax, ranges):
 
 def plot_sample_and_density(model, target_dist, args, ranges_density=[[-2,3],[-2,2]], ranges_sample=[[-2,2],[-2,2]], step=None):
     model.eval()
-    fig, axs = plt.subplots(1, 2, figsize=(6,3))
+    _, axs = plt.subplots(1, 2, figsize=(6,3))
 
-    # How to sample from learned distribution ?
-    u = model.base_dist.sample((2000,))
-    #samples, _ = model.inverse(u)
-    #log_probs = model.log_prob(samples).sort(0)[1].flip(0)  # sort by log_prob; take argsort idxs; flip high to low
-    #samples = samples[log_probs]
-    #data = target_dist.sample((2000,))
-    #u, _ = model(Variable(samples))
+    # sample target distribution and pass through model
+    data = target_dist.sample((2000,))
+    u, _ = model(Variable(data))
 
     # plot density and sample
     plot_density(model, axs[0], ranges_density, False)
@@ -538,5 +534,3 @@ if __name__ == '__main__':
             plot_sample_and_density(model, base_dist, args, ranges_density=[[-2,3],[-2,2]], ranges_sample=[[-1.5,1.5],[-3,3]])
         elif args.dataset == 'MNIST':
             generate(model, train_dataloader.dataset.lam, args)
-
-
