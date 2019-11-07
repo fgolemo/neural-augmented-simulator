@@ -29,7 +29,6 @@ DTYPE = tf.float32
 NP_DTYPE = np.float32
 TARGET_DENSITY = 'GB'
 FREQ = 10
-#NUM_STEPS = 2
 NUM_STEPS = int(settings[TARGET_DENSITY]['train_iters'])
 PT_SCALE = 2.0
 NUM_SLASH = 30
@@ -103,7 +102,7 @@ def train_maf(data_iterator):
         distribution=base_dist,
         bijector=flow_bijector)
 
-    # visualization
+    # For visualization
     x = base_dist.sample(8000)
     samples_A = [x]
     names = [base_dist.name]
@@ -121,26 +120,16 @@ def train_maf(data_iterator):
 def evaluate_model(distribution, eval_data, sess):
 
     probabilities = distribution.prob(eval_data)
-    log_probabilities = distribution.log_prob(eval_data)
     prob_then_log = tf.log(probabilities)
-    #####################################
-    # Add a shift-up to the log function.
-    #####################################
-    scale = 5.0
-    log_scale_probs = tf.log(probabilities + tf.exp(-scale))
 
-    log_scale_probs, probabilities, prob_then_log, original_log_probs = sess.run(
-        [log_scale_probs, probabilities, prob_then_log, log_probabilities])
+    log_scale_probs = shift_log_space(probabilities)
 
-    # Note: Taking tf.log(dist.prob(x)) == dist.log_prob(x)
-    # np.testing.assert_allclose(prob_then_log, original_log_probs, rtol=1e-7)
+    log_scale_probs, probabilities, prob_then_log = sess.run(
+        [log_scale_probs, probabilities, prob_then_log])
 
-    ############
-    # Normalizer
-    ############
-    scaler = MinMaxScaler()
-    prob_normalizer = scaler.fit(probabilities.reshape(-1, 1))
-    norm_probs = prob_normalizer.transform(probabilities.reshape(-1, 1))
+    norm_probs = normalize_probs(probabilities)
+
+    log_probs_norm = normalize_probs(log_scale_probs)
 
     _, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(20, 8))
 
@@ -157,8 +146,8 @@ def evaluate_model(distribution, eval_data, sess):
     ax3.set_title('Normalized Probabilities')
 
     ax4.scatter(eval_data[:, 0], eval_data[:, 1],
-                c=np.squeeze(original_log_probs))
-    ax4.set_title('tf.log_Probabilities')
+                c=np.squeeze(log_probs_norm))
+    ax4.set_title('Normalized Shifted Log Probabilities')
 
     plt.savefig('density_evaluation.png')
 
@@ -197,12 +186,11 @@ def test_goal_targets(distribution, goal_clusters, sess):
         # Evaluate the points
         probabilities = sess.run(distribution.prob(target))
 
-        scaler = MinMaxScaler()
-        prob_normalizer = scaler.fit(probabilities.reshape(-1, 1))
-        norm_probs = prob_normalizer.transform(probabilities.reshape(-1, 1))
+        norm_probs = normalize_probs(probabilities)
 
         # Calculate stat
         print("-"*NUM_SLASH)
+        print('State based on probabilities')
         clus_title = chr(65 + target_idx)
         print(clus_title)
         print('Min: ', np.min(norm_probs))
@@ -211,7 +199,39 @@ def test_goal_targets(distribution, goal_clusters, sess):
         print('Median: ', np.median(norm_probs))
         print("-"*NUM_SLASH)
 
+        log_scale_probs = sess.run(shift_log_space(probabilities))
+        log_probs_norm = normalize_probs(log_scale_probs)
+
+        # Calculate stat
+        print("-"*NUM_SLASH)
+        print('State based on log probabilities')
+        clus_title = chr(65 + target_idx)
+        print(clus_title)
+        print('Min: ', np.min(log_probs_norm))
+        print('Max: ', np.max(log_probs_norm))
+        print('Mean: ', np.mean(log_probs_norm))
+        print('Median: ', np.median(log_probs_norm))
+        print("-"*NUM_SLASH)
+
         # TODO: STAT Test ?
+
+
+def normalize_probs(probabilities):
+    scaler = MinMaxScaler()
+    normalizer = scaler.fit(probabilities.reshape(-1, 1))
+    normalized_probs = normalizer.transform(
+        probabilities.reshape(-1, 1))
+    return normalized_probs
+
+
+def shift_log_space(probabilities):
+    """Add a shift to the log function.
+    """
+    scale = 5.0
+    log_scale_probs = tf.log(probabilities + tf.exp(-scale))
+    log_scale_probs = log_scale_probs + scale
+
+    return log_scale_probs
 
 
 def make_circle_cluster(center_x, center_y,
@@ -261,13 +281,14 @@ def main():
     print("-"*NUM_SLASH)
     for i in range(NUM_STEPS):
         _, np_loss = sess.run([train_op, loss])
-        if i % int(1e3) == 0:
+        if i % int(1e2) == 0:
             global_step.append(i)
             np_losses.append(np_loss)
-        if i % int(1e4) == 0:
+        if i % int(1e3) == 0:
             print('\n', '> Iter: ', i, ' Loss: ', np_loss)
     start = 0
 
+    plt.clf()
     plt.plot(np_losses[start:])
     plt.savefig('Losses.png')
     print("-"*NUM_SLASH)
