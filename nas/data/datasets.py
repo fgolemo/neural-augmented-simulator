@@ -50,4 +50,18 @@ if __name__ == '__main__':
     print (out_x.min(), out_x.max(), out_x.mean())
     print (out_y.min(), out_y.max(), out_y.mean())
 
+    ds = RealRecordingsV1("10")
+    print (len(ds))
+
+    out_x = np.zeros((800,998,30),dtype=np.float)
+    out_y = np.zeros((800,998,12), dtype=np.float)
+
+    for i in range(len(ds)):
+        out_x[i] = ds[i]["x"]
+        out_y[i] = ds[i]["y"]
+
+    # just testing the min/max range for sanity
+    print (out_x.min(), out_x.max(), out_x.mean())
+    print (out_y.min(), out_y.max(), out_y.mean())
+
 

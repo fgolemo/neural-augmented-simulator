@@ -17,6 +17,8 @@ experiment = Experiment(
     api_key="ZfKpzyaedH6ajYSiKmvaSwyCs",
     project_name="nas-v2",
     workspace="fgolemo")
+# experiment.add_tag("debugging-10")
+
 
 HIDDEN_NODES = 128
 LSTM_LAYERS = 3
