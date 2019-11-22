@@ -1,0 +1,8 @@
+from gym import register
+
+register(
+    id='Nas-Pusher-3dof-Vanilla-v1',
+    entry_point='nas.envs:PusherVanillaEnv',
+    max_episode_steps=100,
+    reward_threshold=0,
+    kwargs={})
