@@ -2,16 +2,15 @@ import os
 
 from comet_ml import Experiment
 
-import numpy as np
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
 from tqdm import trange, tqdm
 
-from nas.data import MODELS_PATH
-from nas.data.datasets import RealRecordingsV1
-from nas.models.networks import LstmNetRealv1
-from nas.utils import log_parameters
+from common import MODELS_PATH
+from common import RealRecordingsV1
+from common import LstmNetRealv1
+from common import log_parameters
 
 experiment = Experiment(
     api_key="ZfKpzyaedH6ajYSiKmvaSwyCs",

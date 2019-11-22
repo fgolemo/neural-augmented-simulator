@@ -1,4 +1,3 @@
-import gym
 from gym.envs.mujoco import mujoco_env
 from gym import utils
 import os
@@ -140,7 +139,6 @@ class PusherCtrlGui:
 
 if __name__ == '__main__':
     import gym
-    import nas
 
     # env = gym.make("Nas-Pusher-3dof-Vanilla-v1")
     env = gym.make("Nas-Pusher-3dof-Backlash01-v1")

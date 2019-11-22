@@ -1,11 +1,10 @@
 import os
-import time
 
 import h5py
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from nas.data import DATA_PATH, MODELS_PATH, RECORDINGS_PATH
+from common import RECORDINGS_PATH
 
 #
 # # ====== LOADING TIMES
@@ -50,7 +49,7 @@ from nas.data import DATA_PATH, MODELS_PATH, RECORDINGS_PATH
 # ============= DEBUGGING variant 10 dataset issue
 
 
-from nas.data.datasets import RealRecordingsV1
+from common import RealRecordingsV1
 
 f = h5py.File(os.path.join(RECORDINGS_PATH, "real-recordings-01-02-10-v1.hdf5"), 'r')
 

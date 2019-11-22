@@ -3,7 +3,7 @@ import numpy as np
 import h5py
 from torch.utils.data import Dataset
 
-from nas.data import RECORDINGS_PATH
+from common import RECORDINGS_PATH
 
 
 class RealRecordingsV1(Dataset):

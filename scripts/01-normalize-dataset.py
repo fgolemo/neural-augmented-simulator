@@ -1,7 +1,6 @@
 import pickle
 import os
-import matplotlib.pyplot as plt
-from nas.data import RECORDINGS_PATH
+from common import RECORDINGS_PATH
 import numpy as np
 data = pickle.load(open(os.path.join(RECORDINGS_PATH, "10-lstm-data.pkl"), "rb"))
 
