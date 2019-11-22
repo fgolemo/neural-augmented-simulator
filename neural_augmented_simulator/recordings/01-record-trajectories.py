@@ -7,7 +7,7 @@ import os
 robot = SingleRobot(debug=False) # 6DOF Reacher Robot
 args = get_args()
 
-file_path = os.getcwd() + '/data/freq{}/{}'.format(args.freq, args.approach)
+file_path = os.getcwd() + '/data/robot_recordings/{}/freq{}/{}'.format(args.env_name, args.freq, args.approach)
 
 if not os.path.isdir(file_path):
     os.makedirs(file_path)

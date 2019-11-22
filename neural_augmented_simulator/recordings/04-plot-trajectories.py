@@ -7,7 +7,7 @@ from arguments import get_args
 
 
 args = get_args()
-file_path = os.getcwd() + '/data/{}/freq{}/goal-babbling/'.format(args.env_name, args.variant)
+file_path = os.getcwd() + '/data/robot_recordings/{}/freq{}/goal-babbling/'.format(args.env_name, args.variant)
 
 
 data = pickle.load(open(os.path.join(file_path, "{}-lstm-goal-babbling-data.pkl".format(args.variant)), "rb"))

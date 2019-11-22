@@ -1,12 +1,12 @@
 from comet_ml import Experiment
 import os
-from arguments import get_args
+from neural_augmented_simulator.arguments import get_args
 import gym
 import numpy as np
 import gym_ergojr
 import torch
-from common.agent.ppo_agent import PPO
-from common.agent.actor_critic import Memory
+from neural_augmented_simulator.common.agent.ppo_agent import PPO
+from neural_augmented_simulator.common.agent.actor_critic import Memory
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -41,7 +41,7 @@ os.environ['variant'] = args.variant
 
 
 random_seed = args.seed
-folder_path = os.getcwd() + '/{}/Variant-{}/'.format(args.approach, args.variant)
+folder_path = os.getcwd() + '/trained_models/ppo/{}/Variant-{}/'.format(args.approach, args.variant)
 file_path = folder_path + '/ppo_{}_{}_{}_{}_{}.pth'.format(args.env_name,
                                                            args.noise_type,
                                                            args.variant,

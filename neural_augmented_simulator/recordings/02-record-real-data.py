@@ -10,7 +10,7 @@ zmq = ZMQController('flogo3.local')
 zmq.compliant(False)
 zmq.set_max_speed(100)
 
-file_path = os.getcwd() + f'/data/freq{args.freq}/{args.approach}/'
+file_path = os.getcwd() + f'/data/robot_recordings/{args.env_name}/freq{args.freq}/{args.approach}/'
 
 rest_interval = 10 * 100
 freq = args.freq

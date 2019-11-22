@@ -36,8 +36,8 @@ max_history_len = args.history_len
 goal_positions = []
 count = 0
 
-file_path = '/home/sharath/sim2real-data-recordings/'
-if not os.path.isdir(file_path + 'data/ErgoPusher/freq{}/{}'.format(args.freq, args.approach)):
+file_path = os.getcwd()
+if not os.path.isdir(file_path + '/data/{}/freq{}/{}'.format(args.env_name, args.freq, args.approach)):
     os.makedirs(file_path + 'data/ErgoPusher/freq{}/{}'.format(args.freq, args.approach))
 
 

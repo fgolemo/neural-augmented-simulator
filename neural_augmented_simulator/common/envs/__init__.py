@@ -1,0 +1,1 @@
+from neural_augmented_simulator.common.envs.pusher_envs import PusherVanillaEnv

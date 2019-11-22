@@ -1,10 +1,9 @@
 import os
 import torch
 import torch.nn as nn
-from torch.distributions import MultivariateNormal
-import numpy as np
-from common.agent.actor_critic import ActorCritic
+from neural_augmented_simulator.common.agent.actor_critic import ActorCritic
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class PPO:
     def __init__(self, state_dim, action_dim, action_std, lr, betas, gamma, K_epochs, eps_clip):
