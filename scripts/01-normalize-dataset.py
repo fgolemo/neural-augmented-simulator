@@ -87,7 +87,6 @@ x = np.arange(start, end)
 # plt.show()
 #
 # # # ==================== REAL+SIM VEL - IMPORTANT, SIM VELOCITY IS seemingly INVERTED
-#
 # i = 1 # for example, because motor i=0 is not moving
 # plt.plot(x, real_posvel[start:end, 6+i], label=f"REAL: motor {i} vel ")
 # plt.plot(x, -next_sim_posvel[start:end, 6+i], label=f"NEXT_SIM: motor {i} vel", linestyle="dashed")
@@ -186,30 +185,30 @@ for i in range(3):
     # JUST VERIFYING THAT THE RESHAPING WAS SUCCESSFUL - START
 
 
-#     m = 1  # for example, because motor i=0 is not moving
-#     t = 5  # trajectory
-#     plt.plot(x, real_posvel[t, start:end, m], label=f"REAL: motor {m} pos ")
-#     plt.plot(
-#         x,
-#         next_sim_posvel[t, start:end, m],
-#         label=f"NEXT_SIM: motor {m} pos",
-#         linestyle="dashed")
-#     plt.plot(
-#         x,
-#         next_real_posvel[t, start:end, m],
-#         label=f"NEXT_REAL: motor {m} pos",
-#         linestyle="dashed")
-#     plt.plot(
-#         x,
-#         actions[t, start:end, m],
-#         label=f"motor {m} action",
-#         linestyle="dotted")
-#
-#     plt.title(f"100Hz real/sim recordings from timestep {start} to {end}")
-#     plt.legend()
-#     plt.tight_layout()
-#
-#     plt.show()
+    # m = 1  # for example, because motor i=0 is not moving
+    # t = 5  # trajectory
+    # plt.plot(x, real_posvel[t, start:end, m], label=f"REAL: motor {m} pos ")
+    # plt.plot(
+    #     x,
+    #     next_sim_posvel[t, start:end, m],
+    #     label=f"NEXT_SIM: motor {m} pos",
+    #     linestyle="dashed")
+    # plt.plot(
+    #     x,
+    #     next_real_posvel[t, start:end, m],
+    #     label=f"NEXT_REAL: motor {m} pos",
+    #     linestyle="dashed")
+    # plt.plot(
+    #     x,
+    #     actions[t, start:end, m],
+    #     label=f"motor {m} action",
+    #     linestyle="dotted")
+    #
+    # plt.title(f"100Hz real/sim recordings from timestep {start} to {end}")
+    # plt.legend()
+    # plt.tight_layout()
+    #
+    # plt.show()
     #
     # # ==================== REAL+SIM VEL - IMPORTANT, SIM VELOCITY IS seemingly INVERTED
     #

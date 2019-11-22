@@ -81,5 +81,3 @@ for element in enumerate(tqdm(dataloader2, desc="EPISD: ")):
 
 print (f"ds2: {i}")
 
-
-
