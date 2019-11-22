@@ -6,16 +6,21 @@ import numpy as np
 from tkinter import *
 
 npa = np.array
-
+BACKLASHES = ["01"]
 
 class PusherVanillaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
-    def __init__(self):
+    def __init__(self, backlash = None):
+
         utils.EzPickle.__init__(self)
         # if hasattr(self, "_kwargs") and 'colored' in self._kwargs and self._kwargs["colored"]:
         #     model_path = '3link_gripper_push_2d-colored.xml'
         # else:
-        model_path = '3link_gripper_push_2d.xml'
+        if backlash is None:
+            model_path = '3link_gripper_push_2d.xml'
+        else:
+            assert backlash in BACKLASHES
+            model_path = f'3link_gripper_push_2d_backlash-colored-new-b{backlash}.xml'
         full_model_path = os.path.join(
             os.path.dirname(__file__), "assets", model_path)
         mujoco_env.MujocoEnv.__init__(self, full_model_path, 5)
@@ -137,7 +142,8 @@ if __name__ == '__main__':
     import gym
     import nas
 
-    env = gym.make("Nas-Pusher-3dof-Vanilla-v1")
+    # env = gym.make("Nas-Pusher-3dof-Vanilla-v1")
+    env = gym.make("Nas-Pusher-3dof-Backlash01-v1")
     env.reset()
     # env.render()
 
