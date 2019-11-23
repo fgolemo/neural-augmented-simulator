@@ -10,6 +10,7 @@ from neural_augmented_simulator.common.agent.actor_critic import Memory
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 experiment = Experiment(
             api_key='ZfKpzyaedH6ajYSiKmvaSwyCs',
             project_name='nas-v2',
@@ -19,8 +20,8 @@ env_name = args.env_name
 render = False
 solved_reward = 300         # stop training if avg_reward > solved_reward
 log_interval = 20           # print avg reward in the interval
-max_episodes = 5000        # max training episodes
-max_timesteps = 1500        # max timesteps in one episode
+max_episodes = 10000        # max training episodes
+max_timesteps = 100        # max timesteps in one episode
 
 update_timestep = 4000      # update policy every n timesteps
 action_std = 0.5            # constant std for action distribution (Multivariate Normal)
