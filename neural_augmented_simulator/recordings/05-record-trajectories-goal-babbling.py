@@ -2,14 +2,11 @@ import time
 import random
 import os
 import numpy as np
-from scripts.goal_babbling import GoalBabbling
+from neural_augmented_simulator.recordings.goal_babbling import GoalBabbling
 import matplotlib.pyplot as plt
-from arguments import get_args
-from gym_ergojr.sim.objects import Puck
-from common.envs import NewPuck
+from neural_augmented_simulator.arguments import get_args
 
 args = get_args()
-
 random.seed(args.seed)
 np.random.seed(seed=args.seed)
 
@@ -26,7 +23,6 @@ K_NEAREST_NEIGHBOURS = 8
 EPSILON = 0.3
 task = args.task
 goal_babbling = GoalBabbling(ACTION_NOISE, NUMBER_OF_RETRIES, task)
-puck = NewPuck()
 # Reset the robot
 goal_babbling.reset_robot()
 
@@ -37,8 +33,8 @@ goal_positions = []
 count = 0
 
 file_path = os.getcwd()
-if not os.path.isdir(file_path + '/data/{}/freq{}/{}'.format(args.env_name, args.freq, args.approach)):
-    os.makedirs(file_path + 'data/ErgoPusher/freq{}/{}'.format(args.freq, args.approach))
+if not os.path.isdir(file_path + '/data/robot_recordings/{}/freq{}/{}'.format(args.env_name, args.freq, args.approach)):
+    os.makedirs(file_path + 'data/robot_recordings/{}freq{}/{}'.format(args.env_name, args.freq, args.approach))
 
 
 print('================================================')
@@ -55,10 +51,9 @@ for epi in range(total_steps):
         goal_babbling.reset_robot()
 
     if epi % steps_until_resample == 0:
-        # goal = [random.uniform(-0.1436, 0.22358), random.uniform(0.016000, 0.25002)]  # Reacher goals
+        goal = [random.uniform(-0.1436, 0.22358), random.uniform(0.016000, 0.25002)]  # Reacher goals
         # goal = [random.uniform(-0.135, 0.0), random.uniform(-0.081, 0.135)]  # Pusher goals
-        puck.hard_reset()
-        goal = puck.puck_pos() # goals are not corelating with tip positions. Take care of normalization
+        # goal = puck.puck_pos() # goals are not corelating with tip positions. Take care of normalization
         if count < 10:
             action = goal_babbling.sample_action()
         else:
@@ -80,9 +75,9 @@ for epi in range(total_steps):
 # Save the end positions, goals, actions and simulation trajectories.
 final_pos = np.asarray(end_pos)
 final_goals = np.asarray(goal_positions)
-np.savez(file_path + 'data/ErgoPusher/freq{}/{}/goals_and_positions.npz'.format(args.freq, args.approach)
+np.savez(file_path + 'data/robot_recordings/{}freq{}/{}/goals_and_positions.npz'.format(args.env_name, args.freq, args.approach)
          , positions=final_pos, goals=final_goals)
-np.savez(file_path + 'data/ErgoPusher/freq{}/{}/actions_trajectories.npz'.format(args.freq, args.approach),
+np.savez(file_path + 'data/robot_recordings/{}freq{}/{}/actions_trajectories.npz'.format(args.env_name, args.freq, args.approach),
          actions=actions, sim_trajectories=sim_trajectories)
 
 # Plot the end_pos, goals and 2D histogram of end_pos
@@ -93,12 +88,12 @@ ax1.set_ylim(-0.081, 0.135) # Change axis limits | Pusher : x(-0.081, 0.135) | R
 ax1.set_title("End effector positions for {} trajectories".format(total_steps / 100))
 ax2.scatter(final_goals[:, 0], final_goals[:, 1], alpha=0.5, linewidths=1)
 ax2.set_title('Goals sampled')
-plt.savefig(file_path + 'data/ErgoPusher/freq{}/{}/positions-goals.png'.format(freq, args.approach))
+plt.savefig(file_path + 'data/robot_recordings/{}freq{}/{}/positions-goals.png'.format(args.env_name, args.freq, args.approach))
 plt.close()
 # Plot the 2D histogram and save it.
 plt.hist2d(final_pos[:, 0], final_pos[:, 1], bins=100)
 plt.xlim(-0.135, 0.0)
 plt.ylim(-0.081, 0.135)
 plt.title("2D Histogram of end effector positions")
-plt.savefig(file_path + 'data/ErgoPusher/freq{}/{}/histogram.png'.format(freq, args.approach))
+plt.savefig(file_path + 'data/robot_recordings/{}freq{}/{}/histogram.png'.format(freq, args.approach))
 

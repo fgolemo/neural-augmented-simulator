@@ -3,8 +3,7 @@ import os
 import matplotlib.pyplot as plt
 # from nas.data import DATA_PATH
 import numpy as np
-from arguments import get_args
-from arguments import get_args
+from neural_augmented_simulator.arguments import get_args
 
 
 args = get_args()

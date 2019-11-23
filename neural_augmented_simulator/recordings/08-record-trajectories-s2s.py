@@ -1,15 +1,14 @@
 import numpy as np
 import os
-from gym_ergojr.sim.abstract_robot import PusherRobot
-from arguments import get_args
-from gym_ergojr.sim.objects import Puck
-
+import gym
+import neural_augmented_simulator
+from neural_augmented_simulator.arguments import get_args
 
 args = get_args()
-robot = PusherRobot(action_noise=args.action_noise, obs_noise=args.obs_noise, debug=False) # 3DOF Pusher
-# include puck
-puck = Puck()
-file_path = os.getcwd() + '/data/{}/freq{}/{}/'.format(args.env_name, args.freq, args.approach)
+env = gym.make('Nas-Pusher-3dof-Vanilla-v1')
+obs = env.reset()
+
+file_path = os.getcwd() + '/data/robot_recordings/{}/freq{}/{}/'.format(args.env_name, args.freq, args.approach)
 
 if not os.path.isdir(file_path):
     os.makedirs(file_path)
@@ -21,33 +20,21 @@ freq = args.freq
 count = 0
 steps_until_resample = 100/freq
 
-sim_trajectories = np.zeros((total_steps, 8)) # Dont hard code it.
-actions = np.zeros((total_steps, 3))  # Don't hard code it.
-bad_actions = np.zeros((total_steps))
-robot.hard_reset()
-robot.rest()
-puck.hard_reset()
-robot.step()
+sim_trajectories = np.zeros((total_steps, obs.shape[0])) # Dont hard code it.
+actions = np.zeros((total_steps, env.action_space.shape[0]))  # Don't hard code it.
+env.reset()
 end_pos = []
 
 for epi in range(total_steps):
 
     if epi % rest_interval == 0:
         print('Taking Rest at {}'.format(epi))
-        robot.hard_reset()
-        puck.hard_reset()
-        robot.rest()
-        robot.step()
-
+        env.reset()
     if epi % steps_until_resample == 0:
-        action = np.random.uniform(-1, 1, 3)
-    end_pos.append(robot.get_tip())
+        action = np.random.uniform(-1, 1, env.action_space.shape[0])
     actions[epi, :] = action
-    robot.act(actions[epi, :])
-    robot.step()
-    robot_obs = robot.observe()
-    puck_obs = puck.normalize_puck()
-    obs = np.hstack([robot_obs, puck_obs])
+    obs, _, _, _ = env.step(actions[epi, :])
+    end_pos.append(obs[6:8])
     sim_trajectories[epi, :] = obs
 
 np.save(file_path + 'end_positions.npy', end_pos)

@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 import neural_augmented_simulator
-env = gym.make('Nas-Pusher-3dof-Backlash01-v1')
+env = gym.make('Nas-Pusher-3dof-Vanilla-v1')
 obs = env.reset()
 
 for _ in range(1000):

@@ -2,8 +2,9 @@ import random
 import numpy as np
 from gym_ergojr.sim.single_robot import SingleRobot
 import learners
-from common.envs.sim.pusher_robot import PusherRobotNoisy
-
+import gym
+from neural_augmented_simulator.common.envs.sim.pusher_robot import PusherRobotNoisy
+import neural_augmented_simulator
 
 class GoalBabbling(object):
     def __init__(self, action_noise, num_retries, task):
@@ -11,10 +12,11 @@ class GoalBabbling(object):
         self.retries = num_retries
         self.task = task
         if task == 'pusher':
-            self.robot = PusherRobotNoisy()
+            self.env = gym.make('Nas-Pusher-3dof-Vanilla-v1')
+            self.action_len = self.env.action_space.shape[0]
         else:
             self.robot = SingleRobot(debug=False)
-        self.action_len = len(self.robot.motor_ids)
+            self.action_len = len(self.robot.motor_ids)
         self._nn_set = learners.NNSet()
         np.random.seed(seed=225)
         random.seed(225)
@@ -42,6 +44,7 @@ class GoalBabbling(object):
         if self.task == 'reacher':
             action[0], action[3] = 0, 0
         return action
+        return action
 
     def action_retries(self, goal, history):
         history_local = []
@@ -55,17 +58,24 @@ class GoalBabbling(object):
         return action_new
 
     def perform_action(self, action):
-        self.robot.act(action)
-        self.robot.step()
-        end_pos = self.robot.get_tip()
-        obs = self.robot.observe()
+        if self.task == 'reacher':
+            self.robot.act(action)
+            self.robot.step()
+            end_pos = self.robot.get_tip()
+            obs = self.robot.observe()
+        else:
+            obs, _, _, _ = self.env.step(action)
+            end_pos = obs[6:8]
         return action, end_pos, obs
 
     def reset_robot(self):
-        if self.task == 'pusher':
-            self.robot.hard_reset()
-        self.robot.rest()
-        self.robot.step()
+        if self.task == 'reacher':
+            self.robot.reset()
+            self.robot.rest()
+            self.robot.step()
+        else:
+            observation = self.env.reset()
+        return observation
 
     @staticmethod
     def dist(a, b):
