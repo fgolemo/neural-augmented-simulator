@@ -7,8 +7,8 @@ Clone the repo and install the package:
 
  Training ppo:
 
-`cd neural_augmented_simulator`
-`python experiments/ppo_train.py --approach 'testing' --variant 10 --seed 1 --env-name 'Nas-Pusher-3dof-Backlash01-v1'  --noise-type 'no-noise'`
+* `cd neural_augmented_simulator`
+* `python experiments/ppo_train.py --approach 'testing' --variant 10 --seed 1 --env-name 'Nas-Pusher-3dof-Backlash01-v1'  --noise-type 'no-noise'`
 
  Testing ppo:
 
