@@ -133,3 +133,6 @@ old-code/trained_models/*.pt
 nas/data/real_trajectories/*.pkl
 nas/data/real_trajectories/*.hdf5
 nas/data/trained_models/*.pth
+*pth
+*png
+*pkl
