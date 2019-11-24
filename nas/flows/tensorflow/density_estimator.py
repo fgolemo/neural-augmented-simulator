@@ -10,6 +10,7 @@ import os
 
 from sklearn.preprocessing import MinMaxScaler
 
+
 tfd = tf.contrib.distributions
 tfb = tfd.bijectors
 layers = tf.contrib.layers
@@ -213,8 +214,6 @@ def test_goal_targets(distribution, goal_clusters, sess):
         print('Median: ', np.median(log_probs_norm))
         print("-"*NUM_SLASH)
 
-        # TODO: STAT Test ?
-
 
 def normalize_probs(probabilities):
     scaler = MinMaxScaler()
@@ -252,6 +251,10 @@ def make_circle_cluster(center_x, center_y,
 
 def main():
 
+    path = os.getcwd() + '/maf_save/'
+
+    skip_train = True
+
     sess = tf.InteractiveSession()
 
     sampled_goals, search_space = load_data(points_scale=PT_SCALE)
@@ -274,26 +277,37 @@ def main():
 
     sess.run(tf.global_variables_initializer())
 
-    global_step = []
-    np_losses = []
-    print("-"*NUM_SLASH)
-    print('Training ...')
-    print("-"*NUM_SLASH)
-    for i in range(NUM_STEPS):
-        _, np_loss = sess.run([train_op, loss])
-        if i % int(1e2) == 0:
-            global_step.append(i)
-            np_losses.append(np_loss)
-        if i % int(1e3) == 0:
-            print('\n', '> Iter: ', i, ' Loss: ', np_loss)
-    start = 0
+    # Setup model saving
+    scope = tf.get_variable_scope()
+    saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                                             scope=scope.name))
 
-    plt.clf()
-    plt.plot(np_losses[start:])
-    plt.savefig('Losses.png')
-    print("-"*NUM_SLASH)
-    print('Evaluating ...')
-    print("-"*NUM_SLASH)
+    if not skip_train:
+
+        global_step = []
+        np_losses = []
+        print("-"*NUM_SLASH)
+        print('Training ...')
+        print("-"*NUM_SLASH)
+        for i in range(NUM_STEPS):
+            _, np_loss = sess.run([train_op, loss])
+            if i % int(1e2) == 0:
+                global_step.append(i)
+                np_losses.append(np_loss)
+            if i % int(1e3) == 0:
+                print('\n', '> Iter: ', i, ' Loss: ', np_loss)
+                saver.save(sess, path)
+        start = 0
+
+        plt.clf()
+        plt.plot(np_losses[start:])
+        plt.savefig('Losses.png')
+        print("-"*NUM_SLASH)
+        print('Evaluating ...')
+        print("-"*NUM_SLASH)
+
+    if skip_train:
+        saver.restore(sess, path)
 
     evaluate_model(learned_dist,
                    search_space,
