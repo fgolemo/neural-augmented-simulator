@@ -1,6 +1,7 @@
 """
 Density function estimator on Goal Babble data.
 """
+import argparse
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +11,6 @@ import os
 
 from sklearn.preprocessing import MinMaxScaler
 
-
 tfd = tf.contrib.distributions
 tfb = tfd.bijectors
 layers = tf.contrib.layers
@@ -19,34 +19,60 @@ tf.set_random_seed(0)
 
 # dataset-specific settings
 settings = {
-    'GB': {
+    'goal': {
+        'batch_size': 100,
+        'num_bijectors': 4,
+        'train_iters': 2e4
+    },
+    'motor': {
         'batch_size': 100,
         'num_bijectors': 4,
         'train_iters': 2e4
     }
 }
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--target_density', type=str, default='goal')
+parser.add_argument('--freq', type=int, default=10)
+parser.add_argument('--skip_train', action='store_true')
+args = parser.parse_args()
+
+
 DTYPE = tf.float32
 NP_DTYPE = np.float32
-TARGET_DENSITY = 'GB'
-FREQ = 10
+TARGET_DENSITY = args.target_density
+FREQ = args.freq
 NUM_STEPS = int(settings[TARGET_DENSITY]['train_iters'])
 PT_SCALE = 2.0
 NUM_SLASH = 30
 
 
-def load_data(freq=10, points_scale=2.0):
+def load_data(freq=10, search_space='goal', points_scale=2.0):
     # Load the data
-    file_path = os.getcwd() + f'/data/freq{freq}/goal-babbling/'
-    file_name = f'goals_and_positions_freq-{freq}.npz'
-    pos_action_noise = np.load(file_path + file_name)
-    sampled_goals = pos_action_noise['positions'] + points_scale
-    search_space = pos_action_noise['goals'] + points_scale
+    if search_space == 'goal':
+        file_path = os.getcwd() + f'/data/freq{freq}/goal-babbling/'
+        file_name = f'goals_and_positions_freq-{freq}.npz'
+        pos_action_noise = np.load(file_path + file_name)
+        sampled_goals = pos_action_noise['positions'] + points_scale
+        search_space = pos_action_noise['goals'] + points_scale
 
-    return sampled_goals, search_space
+        return search_space, sampled_goals
+
+    elif search_space == 'motor':
+        file_path = os.getcwd() + f'/data/freq{freq}/motor-babbling/'
+        file_name = f'motor_positions_freq-{freq}.npy'
+        pos_action_noise = np.load(file_path + file_name)
+
+        # plt.scatter(pos_action_noise[:, 0],
+        #             pos_action_noise[:, 1], s=10, color='blue')
+        # plt.savefig('motor_babble.png')
+
+        positions = pos_action_noise + points_scale
+        return positions, None
 
 
 def plot_data(sampled_goals, search_space,
+              fig_path,
               goal_clusters=None,
               goal_locs=None,
               display=False):
@@ -69,7 +95,8 @@ def plot_data(sampled_goals, search_space,
 
     if display:
         plt.show()
-    plt.savefig('input_data.png')
+    fig_path = fig_path + '/input_data.png'
+    plt.savefig(fig_path)
 
 
 def create_data_iter(input_data):
@@ -118,7 +145,7 @@ def train_maf(data_iterator):
     return loss, train_op, learned_dist
 
 
-def evaluate_model(distribution, eval_data, sess):
+def evaluate_model(distribution, eval_data, sess, fig_path):
 
     probabilities = distribution.prob(eval_data)
     prob_then_log = tf.log(probabilities)
@@ -150,7 +177,8 @@ def evaluate_model(distribution, eval_data, sess):
                 c=np.squeeze(log_probs_norm))
     ax4.set_title('Normalized Shifted Log Probabilities')
 
-    plt.savefig('density_evaluation.png')
+    fig_path = fig_path + '/density_evaluation.png'
+    plt.savefig(fig_path)
 
 
 def make_goal_clusters(distribution, goal_list):
@@ -251,27 +279,38 @@ def make_circle_cluster(center_x, center_y,
 
 def main():
 
-    path = os.getcwd() + '/maf_save/'
+    path = os.getcwd() + '/density_models/' + TARGET_DENSITY + \
+        '_' + str(FREQ)
 
-    skip_train = True
+    model_path = path + '/checkpoints'
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    skip_train = args.skip_train
 
     sess = tf.InteractiveSession()
 
-    sampled_goals, search_space = load_data(points_scale=PT_SCALE)
+    search_space, sampled_goals = load_data(freq=FREQ,
+                                            search_space=TARGET_DENSITY,
+                                            points_scale=PT_SCALE)
 
-    # Given a set of goals, generate cluster around the point
-    # evaluate, and generate some stats
-    goals = [[2.24, 2.025],
-             [2.1, 2.10],
-             [1.78, 2.20]]
+    if TARGET_DENSITY == 'goal':
+        # Given a set of goals, generate cluster around the point
+        # evaluate, and generate some stats
+        goals = [[2.24, 2.025],
+                 [2.1, 2.10],
+                 [1.78, 2.20]]
 
-    goal_clusters = make_goal_clusters(None,
-                                       goals)
+        goal_clusters = make_goal_clusters(None,
+                                           goals)
 
-    plot_data(sampled_goals, search_space,
-              goal_clusters, goals, display=False)
+        plot_data(sampled_goals, search_space, path,
+                  goal_clusters, goals, display=False)
 
-    data_iterator = create_data_iter(sampled_goals)
+        data_iterator = create_data_iter(sampled_goals)
+    elif TARGET_DENSITY == 'motor':
+        data_iterator = create_data_iter(search_space)
 
     loss, train_op, learned_dist = train_maf(data_iterator)
 
@@ -296,26 +335,29 @@ def main():
                 np_losses.append(np_loss)
             if i % int(1e3) == 0:
                 print('\n', '> Iter: ', i, ' Loss: ', np_loss)
-                saver.save(sess, path)
+                saver.save(sess, model_path)
         start = 0
 
         plt.clf()
         plt.plot(np_losses[start:])
-        plt.savefig('Losses.png')
+        loss_fig_path = path + '/Losses.png'
+        plt.savefig(loss_fig_path)
         print("-"*NUM_SLASH)
         print('Evaluating ...')
         print("-"*NUM_SLASH)
 
     if skip_train:
-        saver.restore(sess, path)
+        saver.restore(sess, model_path)
 
     evaluate_model(learned_dist,
                    search_space,
-                   sess)
+                   sess,
+                   path)
 
-    test_goal_targets(learned_dist,
-                      goal_clusters,
-                      sess)
+    if TARGET_DENSITY == 'goal':
+        test_goal_targets(learned_dist,
+                          goal_clusters,
+                          sess)
 
 
 if __name__ == "__main__":
