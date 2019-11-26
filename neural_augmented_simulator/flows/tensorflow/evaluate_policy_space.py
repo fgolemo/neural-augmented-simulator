@@ -183,6 +183,8 @@ if __name__ == '__main__':
     density_model = density_model_path + '/checkpoints'
     saver.restore(sess, density_model)
 
+    aggregated_datapoints = []
+
     if args.all_seeds:
         # Evaluate per seed as well as data collected across all seeds
         all_trained_models = []
@@ -197,10 +199,16 @@ if __name__ == '__main__':
             # to avoid negative values. Better fix is to normalize the data
             # and then back.
             data_points += args.point_scale
+            aggregated_datapoints.append(data_points)
 
             msg = 'Stats based on: ' + model
             print(colorize(msg, 'green', bold=True))
             evaluate_points(data_points, learned_dist, sess)
+
+        aggregated_datapoints = np.asarray(aggregated_datapoints)
+        msg = 'Stats based aggregated points: '
+        print(colorize(msg, 'cyan', bold=True))
+        evaluate_points(aggregated_datapoints, learned_dist, sess)
     else:
         model = trained_model_path + \
             trained_model_name + str(args.seed) + '.pth'

@@ -68,9 +68,19 @@ Median:  0.864982
 
 - goal_1, average across points collected by all seed models
 ```
-TODO
+------------------------------
+State based on probabilities
+Mean:  0.44629988
+Std:  0.16845866
+Median:  0.43259227
+------------------------------
+------------------------------
+State based on log probabilities
+Mean:  0.840951
+Std:  0.16845866
+Median:  0.84940326
+------------------------------
 ```
-
 
 - goal_2, seed_1
 ```
@@ -121,10 +131,23 @@ Median:  0.90399003
 ------------------------------
 ```
 
+
 - goal_2, average across points collected by all seed models
 ```
-TODO
+------------------------------
+State based on probabilities
+Mean:  0.53730494
+Std:  0.24147533
+Median:  0.52587765
+------------------------------
+------------------------------
+State based on log probabilities
+Mean:  0.9004066
+Std:  0.24147533
+Median:  0.9150627
+------------------------------
 ```
+
 
 - goal_10, seed_1
 ```
@@ -174,9 +197,21 @@ Median:  0.5922605
 
 ```
 
-- goal_3, average across points collected by all seed models
+
+- goal_10, average across points collected by all seed models
 ```
-TODO
+------------------------------
+State based on probabilities
+Mean:  0.39333272
+Std:  0.22370377
+Median:  0.33000696
+------------------------------
+------------------------------
+State based on log probabilities
+Mean:  0.61929834
+Std:  0.22370377
+Median:  0.60157704
+------------------------------
 ```
 
 - motor_1, seed_1
@@ -226,6 +261,22 @@ Median:  0.8096886
 ------------------------------
 ```
 
+- motor_1, average across points collected by all seed models
+
+```
+------------------------------
+State based on probabilities
+Mean:  0.3046052
+Std:  0.19656284
+Median:  0.2596686
+------------------------------
+------------------------------
+State based on log probabilities
+Mean:  0.6029147
+Std:  0.19656284
+Median:  0.61195314
+------------------------------
+```
 
 - motor_2, seed_1
 ```
@@ -272,6 +323,23 @@ State based on log probabilities
 Mean:  0.7258316
 Std:  0.092095025
 Median:  0.72925234
+------------------------------
+```
+
+
+- motor_2, average across points collected by all seed models
+```
+------------------------------
+State based on probabilities
+Mean:  0.50442946
+Std:  0.16369754
+Median:  0.49524134
+------------------------------
+------------------------------
+State based on log probabilities
+Mean:  0.81662273
+Std:  0.16369754
+Median:  0.8265799
 ------------------------------
 ```
 
@@ -323,4 +391,18 @@ Median:  0.59904885
 ------------------------------
 ```
 
-
+- motor_10, average across points collected by all seed models
+```
+------------------------------
+State based on probabilities
+Mean:  0.4201263
+Std:  0.26429686
+Median:  0.39141497
+------------------------------
+------------------------------
+State based on log probabilities
+Mean:  0.72492784
+Std:  0.26429686
+Median:  0.7670014
+------------------------------
+```

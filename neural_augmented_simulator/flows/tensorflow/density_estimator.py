@@ -318,7 +318,7 @@ def main():
         data_iterator = create_data_iter(search_space,
                                          np_dtype, target_density)
 
-    loss, train_op, learned_dist = train_maf(data_iterator)
+    loss, train_op, learned_dist = setup_and_train_maf(data_iterator)
 
     sess.run(tf.global_variables_initializer())
 
