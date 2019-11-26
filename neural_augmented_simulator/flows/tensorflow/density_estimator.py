@@ -11,6 +11,7 @@ import os
 
 from sklearn.preprocessing import MinMaxScaler
 
+
 tfd = tf.contrib.distributions
 tfb = tfd.bijectors
 layers = tf.contrib.layers
@@ -30,21 +31,6 @@ settings = {
         'train_iters': 2e4
     }
 }
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--target_density', type=str, default='goal')
-parser.add_argument('--freq', type=int, default=10)
-parser.add_argument('--skip_train', action='store_true')
-args = parser.parse_args()
-
-
-DTYPE = tf.float32
-NP_DTYPE = np.float32
-TARGET_DENSITY = args.target_density
-FREQ = args.freq
-NUM_STEPS = int(settings[TARGET_DENSITY]['train_iters'])
-PT_SCALE = 2.0
-NUM_SLASH = 30
 
 
 def load_data(freq=10, search_space='goal', points_scale=2.0):
@@ -99,22 +85,23 @@ def plot_data(sampled_goals, search_space,
     plt.savefig(fig_path)
 
 
-def create_data_iter(input_data):
-    dataset = tf.data.Dataset.from_tensor_slices(input_data.astype(NP_DTYPE))
+def create_data_iter(input_data, np_dtype=np.float32, target_density='goal'):
+    dataset = tf.data.Dataset.from_tensor_slices(input_data.astype(np_dtype))
     dataset = dataset.repeat()
     dataset = dataset.shuffle(buffer_size=input_data.shape[0])
-    dataset = dataset.prefetch(3 * settings[TARGET_DENSITY]['batch_size'])
-    dataset = dataset.batch(settings[TARGET_DENSITY]['batch_size'])
+    dataset = dataset.prefetch(3 * settings[target_density]['batch_size'])
+    dataset = dataset.batch(settings[target_density]['batch_size'])
     return dataset.make_one_shot_iterator()
 
 
-def train_maf(data_iterator):
+def setup_and_train_maf(train=True, data_iterator=None, target_density='goal', dtype=tf.float32):
 
-    x_samples = data_iterator.get_next()
+    if train:
+        x_samples = data_iterator.get_next()
 
-    base_dist = tfd.MultivariateNormalDiag(loc=tf.zeros([2], DTYPE))
+    base_dist = tfd.MultivariateNormalDiag(loc=tf.zeros([2], dtype))
 
-    num_bijectors = settings[TARGET_DENSITY]['num_bijectors']
+    num_bijectors = settings[target_density]['num_bijectors']
     bijectors = []
 
     for _ in range(num_bijectors):
@@ -139,10 +126,12 @@ def train_maf(data_iterator):
         samples_A.append(x)
         names.append(bijector.name)
 
-    loss = -tf.reduce_mean(learned_dist.log_prob(x_samples))
-    train_op = tf.train.AdamOptimizer(1e-4).minimize(loss)
-
-    return loss, train_op, learned_dist
+    if train:
+        loss = -tf.reduce_mean(learned_dist.log_prob(x_samples))
+        train_op = tf.train.AdamOptimizer(1e-4).minimize(loss)
+        return loss, train_op, learned_dist
+    else:
+        return None, None, learned_dist
 
 
 def evaluate_model(distribution, eval_data, sess, fig_path):
@@ -183,10 +172,10 @@ def evaluate_model(distribution, eval_data, sess, fig_path):
 
 def make_goal_clusters(distribution, goal_list):
     """
-    then we can sample a few of the target domain points (i.e. end 
-    effector positions during rollouts), then for each one of these 
+    then we can sample a few of the target domain points (i.e. end
+    effector positions during rollouts), then for each one of these
     points, we can test them against the density function individually
-    and return a 
+    and return a
     mean + min + max over all points or we can do Kolmogorov-Smirnov
     test and return that confidence ? How to do in tf?
     """
@@ -210,6 +199,7 @@ def make_goal_clusters(distribution, goal_list):
 
 def test_goal_targets(distribution, goal_clusters, sess):
 
+    NUM_SLASH = 30
     for target_idx, target in enumerate(goal_clusters):
 
         # Evaluate the points
@@ -279,8 +269,22 @@ def make_circle_cluster(center_x, center_y,
 
 def main():
 
-    path = os.getcwd() + '/density_models/' + TARGET_DENSITY + \
-        '_' + str(FREQ)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--target_density', type=str, default='goal')
+    parser.add_argument('--freq', type=int, default=10)
+    parser.add_argument('--skip_train', action='store_true')
+    args = parser.parse_args()
+
+    dtype = tf.float32
+    np_dtype = np.float32
+    target_density = args.target_density
+    freq = args.freq
+    num_steps = int(settings[target_density]['train_iters'])
+    PT_SCALE = 2.0
+    NUM_SLASH = 30
+
+    path = os.getcwd() + '/density_models/' + target_density + \
+        '_' + str(freq)
 
     model_path = path + '/checkpoints'
 
@@ -291,11 +295,11 @@ def main():
 
     sess = tf.InteractiveSession()
 
-    search_space, sampled_goals = load_data(freq=FREQ,
-                                            search_space=TARGET_DENSITY,
+    search_space, sampled_goals = load_data(freq=freq,
+                                            search_space=target_density,
                                             points_scale=PT_SCALE)
 
-    if TARGET_DENSITY == 'goal':
+    if target_density == 'goal':
         # Given a set of goals, generate cluster around the point
         # evaluate, and generate some stats
         goals = [[2.24, 2.025],
@@ -308,11 +312,13 @@ def main():
         plot_data(sampled_goals, search_space, path,
                   goal_clusters, goals, display=False)
 
-        data_iterator = create_data_iter(sampled_goals)
-    elif TARGET_DENSITY == 'motor':
-        data_iterator = create_data_iter(search_space)
+        data_iterator = create_data_iter(sampled_goals,
+                                         np_dtype, target_density)
+    elif target_density == 'motor':
+        data_iterator = create_data_iter(search_space,
+                                         np_dtype, target_density)
 
-    loss, train_op, learned_dist = train_maf(data_iterator)
+    loss, train_op, learned_dist = setup_and_train_maf(data_iterator)
 
     sess.run(tf.global_variables_initializer())
 
@@ -328,7 +334,7 @@ def main():
         print("-"*NUM_SLASH)
         print('Training ...')
         print("-"*NUM_SLASH)
-        for i in range(NUM_STEPS):
+        for i in range(num_steps):
             _, np_loss = sess.run([train_op, loss])
             if i % int(1e2) == 0:
                 global_step.append(i)
@@ -354,7 +360,7 @@ def main():
                    sess,
                    path)
 
-    if TARGET_DENSITY == 'goal':
+    if target_density == 'goal':
         test_goal_targets(learned_dist,
                           goal_clusters,
                           sess)
