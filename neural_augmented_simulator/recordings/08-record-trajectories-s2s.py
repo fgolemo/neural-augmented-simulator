@@ -31,7 +31,7 @@ for epi in range(total_steps):
         print('Taking Rest at {}'.format(epi))
         env.reset()
     if epi % steps_until_resample == 0:
-        action = np.random.uniform(-1, 1, env.action_space.shape[0])
+        action = env.action_space.sample()
     actions[epi, :] = action
     obs, _, _, _ = env.step(actions[epi, :])
     end_pos.append(obs[6:8])

@@ -7,6 +7,7 @@ from tkinter import *
 npa = np.array
 BACKLASHES = ["01"]
 
+
 class PusherVanillaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def __init__(self, backlash = None):
@@ -15,14 +16,17 @@ class PusherVanillaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         # if hasattr(self, "_kwargs") and 'colored' in self._kwargs and self._kwargs["colored"]:
         #     model_path = '3link_gripper_push_2d-colored.xml'
         # else:
-        if backlash is None:
+        self.ids = [0, 2, 4]
+        self.backlash = backlash
+        if self.backlash is None:
             model_path = '3link_gripper_push_2d.xml'
         else:
-            assert backlash in BACKLASHES
-            model_path = f'3link_gripper_push_2d_backlash-colored-new-b{backlash}.xml'
+            assert self.backlash in BACKLASHES
+            model_path = f'3link_gripper_push_2d_backlash-colored-new-b{self.backlash}.xml'
         full_model_path = os.path.join(
             os.path.dirname(__file__), "assets", model_path)
         mujoco_env.MujocoEnv.__init__(self, full_model_path, 5)
+
 
     def step(self, action):
 
@@ -83,13 +87,22 @@ class PusherVanillaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         return self._get_obs()
 
     def _get_obs(self):
-        return np.concatenate([
-            self.sim.data.qpos.flat[:-4],
-            self.sim.data.qvel.flat[:-4],
-            self.get_body_com("distal_4")[:2],
-            self.get_body_com("object")[:2],
-            self.get_body_com("goal")[:2],
-        ])
+        if self.backlash is not None:
+            return np.concatenate([
+                self.sim.data.qpos.flat[self.ids],
+                self.sim.data.qvel.flat[self.ids],
+                self.get_body_com("distal_4")[:2],
+                self.get_body_com("object")[:2],
+                self.get_body_com("goal")[:2],
+            ])
+        else:
+            return np.concatenate([
+                self.sim.data.qpos.flat[:-4],
+                self.sim.data.qvel.flat[:-4],
+                self.get_body_com("distal_4")[:2],
+                self.get_body_com("object")[:2],
+                self.get_body_com("goal")[:2],
+            ])
 
 
 class PusherCtrlGui:

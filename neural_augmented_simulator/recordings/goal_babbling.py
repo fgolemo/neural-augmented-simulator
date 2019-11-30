@@ -36,14 +36,15 @@ class GoalBabbling(object):
         new_command = action + action_noise
         if self.task == 'reacher':
             new_command[0], new_command[3] = 0, 0
-        new_command = np.clip(new_command, -1, 1)
+            new_command = np.clip(new_command, -1, 1)
+        new_command = np.clip(new_command, -3, 3)
         return new_command
 
     def sample_action(self):
-        action = np.random.uniform(-1, 1, self.action_len)
+        action = self.env.action_space.sample()
         if self.task == 'reacher':
+            action = np.random.uniform(-1, 1, self.action_len)
             action[0], action[3] = 0, 0
-        return action
         return action
 
     def action_retries(self, goal, history):

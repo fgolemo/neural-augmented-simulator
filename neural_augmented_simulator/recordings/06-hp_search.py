@@ -1,23 +1,21 @@
 import numpy as np
 import random
 import os
-from arguments import get_args
-from scripts.goal_babbling import GoalBabbling
+from neural_augmented_simulator.arguments import get_args
+from neural_augmented_simulator.recordings.goal_babbling import GoalBabbling
 import matplotlib.pyplot as plt
-from gym_ergojr.sim.objects import Puck
 
 seed = 123
 args = get_args()
 
 random.seed(seed)
 np.random.seed(seed=seed)
-total_steps = 1000 * 100
+total_steps = 5000 * 10
 rest_interval = 10 * 100
 freq = args.freq
 count = 0
 steps_until_resample = 100/freq
 max_history_len = 15000
-puck = Puck()
 
 # HYPERPARAMETERS
 SAMPLE_NEW_GOAL = 1
@@ -55,8 +53,7 @@ for action_noise in ACTION_NOISE:
                 if epi % steps_until_resample == 0:
                     # goal = [random.uniform(-0.1436, 0.22358), random.uniform(0.016000, 0.25002)]  # Reacher goals
                     # goal = [random.uniform(-0.135, 0.0), random.uniform(-0.081, 0.135)]  # Pusher goals
-                    puck.hard_reset()
-                    goal = puck.normalize_puck()
+                    goal = [random.uniform(-1, 1), random.uniform(-1, 1)]
                     if count < 10:
                         action = goal_babbling.sample_action()
                     else:

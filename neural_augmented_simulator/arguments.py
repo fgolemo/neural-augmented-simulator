@@ -17,7 +17,7 @@ def get_args():
     parser.add_argument('--total-steps', type=int, default=int(1e6), help='the number of epochs to train the agent')
     parser.add_argument('--rest-interval', type=int, default=int(1e3), help='the number of epochs to train the agent')
     parser.add_argument('--num-steps', type=int, default=int(1e2), help='the number of epochs to train the agent')
-    parser.add_argument('--history-len', type=int, default=int(1e4), help='the number of epochs to train the agent')
+    parser.add_argument('--history-len', type=int, default=int(2e4), help='the number of epochs to train the agent')
     parser.add_argument('--goal-sample-freq', type=int, default=1, help='the number of epochs to train the agent')
     parser.add_argument('--num-retries', type=int, default=5, help='the number of epochs to train the agent')
     parser.add_argument('--seed', type=int, default=123, help='the number of epochs to train the agent')

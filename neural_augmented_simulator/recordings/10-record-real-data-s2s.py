@@ -18,8 +18,8 @@ steps_until_resample = args.num_steps/freq
 
 # Hyper-parameters
 SAMPLE_NEW_GOAL = args.goal_sample_freq
-NUMBER_OF_RETRIES = args.num_retries
-ACTION_NOISE = 0.4
+NUMBER_OF_RETRIES = 5
+ACTION_NOISE = 0.2
 K_NEAREST_NEIGHBOURS = 8
 EPSILON = 0.3
 task = args.task
@@ -29,7 +29,7 @@ goal_babbling.reset_robot()
 
 end_pos = []
 history = []
-max_history_len = args.history_len
+max_history_len = 15000
 goal_positions = []
 count = 0
 
@@ -55,8 +55,7 @@ for epi in range(total_steps):
     if epi % steps_until_resample == 0:
         # goal = [random.uniform(-0.1436, 0.22358), random.uniform(0.016000, 0.25002)]  # Reacher goals
         # goal = [random.uniform(-0.135, 0.0), random.uniform(-0.081, 0.135)]  # Pusher goals
-        observation = goal_babbling.reset_robot()
-        goal = observation[8:10] # goals are not corelating with tip positions. Take care of normalization
+        goal = [random.uniform(-0.8, 0.8), random.uniform(-0.8, 0.8)] # goals are not corelating with tip positions. Take care of normalization
         if count < 10:
             action = goal_babbling.sample_action()
         else:
@@ -66,7 +65,6 @@ for epi in range(total_steps):
     else:
         if task == 'reacher':
             action[0], action[3] = 0, 0
-
     _, end_position, observation = goal_babbling.perform_action(action)  # Perform the action and get the observation
     if len(history) >= max_history_len:
         del history[0]
