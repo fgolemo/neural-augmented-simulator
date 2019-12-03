@@ -27,9 +27,23 @@ for headlessness in ["Graphical", "Headless"]:
 
     for terminates, name in [(True, ""), (False, "-Long")]:
         register(
-            id='ErgoReacherNew-{}-MultiGoal-Halfdisk{}-v2'.format(headlessness, name),
-            entry_point='neural_augmented_simulator.common.envs:ErgoReacherNewEnv',
-            max_episode_steps=300,
+            id='Nas-ErgoReacher-{}-MultiGoal-Halfdisk{}-v2'.format(headlessness, name),
+            entry_point='neural_augmented_simulator.common.envs.ergo_reacher:ErgoReacherNewEnv',
+            max_episode_steps=100,
+            reward_threshold=0,
+            kwargs={
+                'headless': headlessness_switch,
+                'simple': True,
+                'goal_halfsphere': True,
+                'multi_goal': True,
+                'goals': 3,
+                'terminates': terminates
+            })
+
+        register(
+            id='Nas-ErgoReacherAugmented-{}-MultiGoal-Halfdisk{}-v2'.format(headlessness, name),
+            entry_point='neural_augmented_simulator.common.envs.ergo_reacher_augmented:ErgoReacherAugmentedEnv',
+            max_episode_steps=100,
             reward_threshold=0,
             kwargs={
                 'headless': headlessness_switch,

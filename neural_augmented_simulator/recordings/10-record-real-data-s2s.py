@@ -19,7 +19,7 @@ steps_until_resample = args.num_steps/freq
 # Hyper-parameters
 SAMPLE_NEW_GOAL = args.goal_sample_freq
 NUMBER_OF_RETRIES = 5
-ACTION_NOISE = 0.2
+ACTION_NOISE = 0.4
 K_NEAREST_NEIGHBOURS = 8
 EPSILON = 0.3
 task = args.task
@@ -55,7 +55,7 @@ for epi in range(total_steps):
     if epi % steps_until_resample == 0:
         # goal = [random.uniform(-0.1436, 0.22358), random.uniform(0.016000, 0.25002)]  # Reacher goals
         # goal = [random.uniform(-0.135, 0.0), random.uniform(-0.081, 0.135)]  # Pusher goals
-        goal = [random.uniform(-0.8, 0.8), random.uniform(-0.8, 0.8)] # goals are not corelating with tip positions. Take care of normalization
+        goal = [random.uniform(-0.7, 0.7), random.uniform(-0.7, 0.7)] # goals are not corelating with tip positions. Take care of normalization
         if count < 10:
             action = goal_babbling.sample_action()
         else:
