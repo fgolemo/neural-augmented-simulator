@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import torch
+import gym_ergojr
 from gym_ergojr.envs.ergo_reacher_env import ErgoReacherEnv
 from neural_augmented_simulator.common.nas.models.networks import LstmNetRealv1
 
