@@ -1,6 +1,7 @@
 import pdb
 import argparse
 import tensorflow as tf
+import time
 import os
 import gym
 import torch
@@ -47,7 +48,10 @@ def evaluate(model_to_load, args):
     msg = 'Evaluating model seed id: ' + model_to_load
     print(colorize(msg, 'yellow', bold=True))
 
+    import pdb
+
     env = gym.make(args.env)
+    #env.seed(args.seed + 100)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
 
@@ -85,6 +89,7 @@ def evaluate(model_to_load, args):
             ep_reward += reward
             if args.render:
                 env.render()
+                time.sleep(0.05)
             if args.save_gif:
                 img = env.render(mode='rgb_array')
                 img = Image.fromarray(img)
@@ -99,8 +104,6 @@ def evaluate(model_to_load, args):
 
 
 def evaluate_points(data_points, learned_dist, sess):
-
-    #data_iterator = density_estimator.create_data_iter(data_points)
 
     probabilities = sess.run(learned_dist.prob(data_points))
     norm_probs = density_estimator.normalize_probs(probabilities)
@@ -132,20 +135,27 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--env', type=str, default='ErgoReacherNew-Headless-MultiGoal-Halfdisk-Long-v2')
+        '--env', type=str, default='Nas-ErgoReacherAugmented-Headless-MultiGoal-Halfdisk-Long-v2',
+        help='The environment to evaluate on - this can be the headless or graphical version.')
     parser.add_argument(
-        '--stored_env', type=str, default='ErgoReacherAugmented-Headless-MultiGoal-Halfdisk-Long-v2')
+        '--trained_env', type=str, default='Nas-ErgoReacherAugmented-Headless-MultiGoal-Halfdisk-Long-v2',
+        help='The environment the model was trained with.')
     parser.add_argument('--exploration', type=str, default='goal')
     parser.add_argument('--freq', type=int, default=10)
     parser.add_argument('--all-seeds', action='store_true')
     parser.add_argument('--seed', type=int, default=1)
 
+    parser.add_argument('-task', type=str, default='reacher')
+
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--save-gif', action='store_true')
     parser.add_argument('--point-scale', type=float, default=2.0)
 
-    #args = parser.parse_args()
     args, unknown = parser.parse_known_args()
+
+    os.environ['approach'] = args.exploration + '-babbling'
+    os.environ['variant'] = str(args.freq)
+    os.environ['task'] = args.task
 
     exploration = args.exploration
     freq = args.freq
@@ -163,7 +173,7 @@ if __name__ == '__main__':
         density_model_path
     print(colorize(msg, 'green', bold=True))
 
-    env_name = args.stored_env
+    env_name = args.trained_env
     trained_model_name = 'ppo_{}_{}_{}-babbling_'.format(env_name,
                                                          freq, exploration)
 
