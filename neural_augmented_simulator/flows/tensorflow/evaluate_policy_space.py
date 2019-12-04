@@ -4,6 +4,7 @@ import time
 import os
 import gym
 import torch
+import matplotlib.pyplot as plt
 import numpy as np
 
 from PIL import Image
@@ -13,6 +14,7 @@ from neural_augmented_simulator.arguments import get_args
 from neural_augmented_simulator.flows.tensorflow import density_estimator
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+plt.rcParams.update({'font.size': 10})
 
 color2num = dict(
     gray=30,
@@ -42,13 +44,13 @@ def colorize(string, color, bold=False, highlight=False):
     return '\x1b[%sm%s\x1b[0m' % (';'.join(attr), string)
 
 
-def evaluate(model_to_load, args):
+def evaluate(model_to_load, args, seed):
 
     msg = 'Evaluating model seed id: ' + model_to_load
     print(colorize(msg, 'yellow', bold=True))
 
     env = gym.make(args.env)
-    #env.seed(args.seed + 100)
+    env.seed(seed + 100)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
 
@@ -100,7 +102,7 @@ def evaluate(model_to_load, args):
     return np.asarray(data_points)
 
 
-def evaluate_points(data_points, learned_dist, sess):
+def evaluate_points(data_points, learned_dist, sess, seed=None):
 
     probabilities = sess.run(learned_dist.prob(data_points))
     norm_probs = density_estimator.normalize_probs(probabilities)
@@ -126,36 +128,13 @@ def evaluate_points(data_points, learned_dist, sess):
     print('Median: ', np.median(log_probs_norm))
     print("-"*num_slash)
 
+    return np.mean(log_probs_norm)
 
-if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser()
+def setup_and_rollout(exploration, freq, seed):
 
-    parser.add_argument(
-        '--env', type=str, default='Nas-ErgoReacherAugmented-Headless-MultiGoal-Halfdisk-Long-v2',
-        help='The environment to evaluate on - this can be the headless or graphical version.')
-    parser.add_argument(
-        '--trained_env', type=str, default='Nas-ErgoReacherAugmented-Headless-MultiGoal-Halfdisk-Long-v2',
-        help='The environment the model was trained with.')
-    parser.add_argument('--exploration', type=str, default='goal')
-    parser.add_argument('--freq', type=int, default=10)
-    parser.add_argument('--all-seeds', action='store_true')
-    parser.add_argument('--seed', type=int, default=1)
-
-    parser.add_argument('-task', type=str, default='reacher')
-
-    parser.add_argument('--render', action='store_true')
-    parser.add_argument('--save-gif', action='store_true')
-    parser.add_argument('--point-scale', type=float, default=2.0)
-
-    args, unknown = parser.parse_known_args()
-
-    os.environ['approach'] = args.exploration + '-babbling'
-    os.environ['variant'] = str(args.freq)
-    os.environ['task'] = args.task
-
-    exploration = args.exploration
-    freq = args.freq
+    os.environ['approach'] = exploration + '-babbling'
+    os.environ['variant'] = str(freq)
 
     current_dir = os.getcwd()
     trained_model_path = current_dir + \
@@ -174,11 +153,13 @@ if __name__ == '__main__':
     trained_model_name = 'ppo_{}_{}_{}-babbling_'.format(env_name,
                                                          freq, exploration)
 
+    tf.reset_default_graph()
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.InteractiveSession(config=config)
 
-    _, _, learned_dist = density_estimator.setup_and_train_maf(train=False)
+    _, _, learned_dist = density_estimator.setup_and_train_maf(
+        train=False)
 
     sess.run(tf.global_variables_initializer())
 
@@ -190,44 +171,95 @@ if __name__ == '__main__':
     density_model = density_model_path + '/checkpoints'
     saver.restore(sess, density_model)
 
-    aggregated_datapoints = []
+    model = trained_model_path + \
+        trained_model_name + str(seed) + '.pth'
+    data_points = evaluate(model, args, seed)
+    # This is a slight hack as the data was trained by this shift scale
+    # to avoid negative values. Better fix is to normalize the data
+    # and then normalize back.
+    data_points += args.point_scale
+
+    msg = 'Stats based on: ' + model
+    print(colorize(msg, 'green', bold=True))
+
+    return learned_dist, sess, data_points
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '--env', type=str, default='Nas-ErgoReacherAugmented-Headless-MultiGoal-Halfdisk-Long-v2',
+        help='The environment to evaluate on - this can be the headless or graphical version.')
+    parser.add_argument(
+        '--trained_env', type=str, default='Nas-ErgoReacherAugmented-Headless-MultiGoal-Halfdisk-Long-v2')
+
+    parser.add_argument('--all-seeds', action='store_true')
+    parser.add_argument('--seed', type=int, default=1,
+                        help='Used as the environment seed.')
+
+    parser.add_argument('-task', type=str, default='reacher')
+
+    parser.add_argument('--render', action='store_true')
+    parser.add_argument('--save-gif', action='store_true')
+    parser.add_argument('--point-scale', type=float, default=2.0)
+
+    args, unknown = parser.parse_known_args()
+
+    all_frequencies = [1, 2, 10]
+    all_seeds = [1, 2, 3]
+
+    os.environ['task'] = args.task
+
+    for seed in all_seeds:
+        densities = {}
+        for exploration in ['goal', 'motor']:
+            for freq in all_frequencies:
+                learned_dist, sess, data_points = setup_and_rollout(
+                    exploration, freq, seed)
+
+                avg_prob = evaluate_points(
+                    data_points, learned_dist, sess, seed)
+                col_name = exploration + '_' + str(freq)
+                densities.update({col_name: avg_prob})
+
+                plt.clf()
+                plt.bar(*zip(*densities.items()))
+                plt.ylabel('Average Probabilities')
+                title = 'Rollout point probabilities averaged for seed ' + \
+                    str(seed)
+                plt.suptitle(title)
+                figure_name = 'Avg_probs_seed_' + str(seed) + '.png'
+                plt.savefig(figure_name)
 
     if args.all_seeds:
-        # Evaluate per seed as well as data collected across all seeds
-        all_trained_models = []
-        for i in range(1, 4):
-            trained_model_wseed = trained_model_path + \
-                trained_model_name + str(i) + '.pth'
-            all_trained_models.append(trained_model_wseed)
+        # Ugly but let's just repeat the evaluations, this time storing data
+        # across seeds.
+        densities = {}
+        for exploration in ['goal', 'motor']:
+            for freq in all_frequencies:
+                aggregated_datapoints = []
+                for seed in all_seeds:
+                    learned_dist, sess, data_points = setup_and_rollout(
+                        exploration, freq, seed)
+                    aggregated_datapoints.append(data_points)
 
-        for model in all_trained_models:
-            data_points = evaluate(model, args)
-            # This is a slight hack as the data was trained by this shift scale
-            # to avoid negative values. Better fix is to normalize the data
-            # and then back.
-            data_points += args.point_scale
-            aggregated_datapoints.append(data_points)
+                aggregated_datapoints = np.concatenate(
+                    aggregated_datapoints, axis=0)
+                msg = 'Stats based aggregated points: '
+                print(colorize(msg, 'cyan', bold=True))
+                evaluate_points(aggregated_datapoints, learned_dist, sess)
 
-            msg = 'Stats based on: ' + model
-            print(colorize(msg, 'green', bold=True))
-            evaluate_points(data_points, learned_dist, sess)
+                avg_probs = evaluate_points(
+                    data_points, learned_dist, sess, seed)
+                col_name = exploration + '_' + str(freq)
+                densities.update({col_name: avg_probs})
 
-        aggregated_datapoints = np.asarray(aggregated_datapoints)
-        msg = 'Stats based aggregated points: '
-        print(colorize(msg, 'cyan', bold=True))
-        evaluate_points(aggregated_datapoints, learned_dist, sess)
-    else:
-        model = trained_model_path + \
-            trained_model_name + str(args.seed) + '.pth'
-
-        data_points = evaluate(model, args)
-        # This is a slight hack as the data was trained by this shift scale
-        # to avoid negative values. Better fix is to normalize the data
-        # and then back.
-        data_points += args.point_scale
-
-        # Load the density model
-        density_model = density_model_path + '/checkpoints'
-        evaluate_points(data_points, learned_dist, sess)
-        msg = 'Stats based on: ' + model
-        print(colorize(msg, 'green', bold=True))
+                plt.clf()
+                plt.bar(*zip(*densities.items()))
+                plt.ylabel('Average Probabilities')
+                title = 'Rollout point probabilities averaged across all seeds.'
+                plt.suptitle(title)
+                figure_name = 'Avg_probs_across_all_seeds.png'
+                plt.savefig(figure_name)
