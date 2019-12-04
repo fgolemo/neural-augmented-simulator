@@ -224,14 +224,14 @@ if __name__ == '__main__':
                 col_name = exploration + '_' + str(freq)
                 densities.update({col_name: avg_prob})
 
-                plt.clf()
-                plt.bar(*zip(*densities.items()))
-                plt.ylabel('Average Probabilities')
-                title = 'Rollout point probabilities averaged for seed ' + \
-                    str(seed)
-                plt.suptitle(title)
-                figure_name = 'Avg_probs_seed_' + str(seed) + '.png'
-                plt.savefig(figure_name)
+        plt.clf()
+        plt.bar(*zip(*densities.items()))
+        plt.ylabel('Average Probabilities')
+        title = 'Rollout point probabilities averaged for seed ' + \
+            str(seed)
+        plt.suptitle(title)
+        figure_name = 'Avg_probs_seed_' + str(seed) + '.png'
+        plt.savefig(figure_name)
 
     if args.all_seeds:
         # Ugly but let's just repeat the evaluations, this time storing data
