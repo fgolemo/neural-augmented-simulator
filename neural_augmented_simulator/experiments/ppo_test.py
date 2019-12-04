@@ -25,11 +25,12 @@ save_gif = False  # png images are saved in gif folder
 
 # filename and directory to load model from
 filename = '/ppo_{}_{}_{}_{}.pth'.format(args.env_name,
-                                            args.variant,
-                                            args.approach,
-                                            args.seed)
+                                         args.variant,
+                                         args.approach,
+                                         args.seed)
 
-directory = os.getcwd() + '/trained_models/ppo/{}/Variant-{}'.format(args.approach, args.variant)
+directory = os.getcwd() + \
+    '/trained_models/ppo/{}/Variant-{}'.format(args.approach, args.variant)
 print(filename)
 action_std = 0.5  # constant std for action distribution (Multivariate Normal)
 K_epochs = 80  # update policy for K epochs
@@ -41,8 +42,10 @@ betas = (0.9, 0.999)
 #############################################
 
 memory = Memory()
-ppo = PPO(state_dim, action_dim, action_std, lr, betas, gamma, K_epochs, eps_clip)
-ppo.policy_old.load_state_dict(torch.load(directory + filename, map_location=torch.device('cpu')))
+ppo = PPO(state_dim, action_dim, action_std,
+          lr, betas, gamma, K_epochs, eps_clip)
+ppo.policy_old.load_state_dict(torch.load(
+    directory + filename, map_location=torch.device('cpu')))
 
 for ep in range(1, n_episodes + 1):
     ep_reward = 0
@@ -62,4 +65,4 @@ for ep in range(1, n_episodes + 1):
 
     print('Episode: {}\tReward: {}'.format(ep, int(ep_reward)))
     ep_reward = 0
-    env.close()
+env.close()
