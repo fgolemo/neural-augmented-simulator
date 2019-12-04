@@ -1,4 +1,3 @@
-import pdb
 import os
 import gym
 from neural_augmented_simulator.common.agent.ppo_agent import PPO
@@ -6,7 +5,6 @@ from neural_augmented_simulator.common.agent.actor_critic import Memory
 from PIL import Image
 from neural_augmented_simulator.arguments import get_args
 import torch
-import time
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -16,7 +14,6 @@ os.environ['variant'] = args.variant
 os.environ['task'] = args.task
 ############## Hyperparameters ##############
 env_name = args.env_name
-pdb.set_trace()
 env = gym.make(env_name)
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.shape[0]

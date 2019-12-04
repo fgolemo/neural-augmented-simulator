@@ -1,4 +1,3 @@
-import pdb
 import argparse
 import tensorflow as tf
 import time
@@ -47,8 +46,6 @@ def evaluate(model_to_load, args):
 
     msg = 'Evaluating model seed id: ' + model_to_load
     print(colorize(msg, 'yellow', bold=True))
-
-    import pdb
 
     env = gym.make(args.env)
     #env.seed(args.seed + 100)
