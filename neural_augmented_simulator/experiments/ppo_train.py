@@ -20,7 +20,7 @@ env_name = args.env_name
 render = False
 solved_reward = 300         # stop training if avg_reward > solved_reward
 log_interval = 20           # print avg reward in the interval
-max_episodes = 10000        # max training episodes
+max_episodes = 5000        # max training episodes
 max_timesteps = 100        # max timesteps in one episode
 
 update_timestep = 4000      # update policy every n timesteps
@@ -39,12 +39,13 @@ betas = (0.9, 0.999)
 os.environ['noise_type'] = args.noise_type
 os.environ['approach'] = args.approach
 os.environ['variant'] = args.variant
+os.environ['task'] = args.task
 
-
+torch.manual_seed(args.seed)
+np.random.seed(args.seed)
 random_seed = args.seed
 folder_path = os.getcwd() + '/trained_models/ppo/{}/Variant-{}/'.format(args.approach, args.variant)
-file_path = folder_path + '/ppo_{}_{}_{}_{}_{}.pth'.format(args.env_name,
-                                                           args.noise_type,
+file_path = folder_path + '/ppo_{}_{}_{}_{}.pth'.format(args.env_name,
                                                            args.variant,
                                                            args.approach,
                                                            random_seed)

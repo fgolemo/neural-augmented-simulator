@@ -17,7 +17,6 @@ np.random.seed(seed=args.seed)
 total_steps = args.total_steps
 rest_interval = args.rest_interval
 freq = args.freq
-count = 0
 steps_until_resample = 100/freq
 
 sim_trajectories = np.zeros((total_steps, obs.shape[0])) # Dont hard code it.
@@ -33,7 +32,7 @@ for epi in range(total_steps):
     if epi % steps_until_resample == 0:
         action = env.action_space.sample()
     actions[epi, :] = action
-    obs, _, _, _ = env.step(actions[epi, :])
+    obs, _, _, _ = env.step(action)
     end_pos.append(obs[6:8])
     sim_trajectories[epi, :] = obs
 

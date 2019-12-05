@@ -66,7 +66,7 @@ class GoalBabbling(object):
             obs = self.robot.observe()
         else:
             obs, _, _, _ = self.env.step(action)
-            end_pos = obs[6:8]
+            end_pos = list(obs[6:8])
         return action, end_pos, obs
 
     def reset_robot(self):
