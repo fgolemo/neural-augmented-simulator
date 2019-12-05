@@ -8,7 +8,7 @@ Clone the repo and install the package:
  Training ppo:
 
 * `cd neural_augmented_simulator`
-* `python experiments/ppo_train.py --approach 'goal-babbling' --variant 10 --seed 3 --env-name 'Nas-ErgoReacherAugmented-Headless-MultiGoal-Halfdisk-Long-v2'  --task='reacher'`
+* `python experiments/ppo_train.py --approach 'goal-babbling' --variant 10 --seed 1 --env-name 'Nas-ErgoReacherAugmented-Headless-MultiGoal-Halfdisk-Long-v2'  --task='reacher'`
 
  Testing ppo:
 
