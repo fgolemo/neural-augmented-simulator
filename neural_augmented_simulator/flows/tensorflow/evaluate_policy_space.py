@@ -97,8 +97,8 @@ def evaluate(model_to_load, args, seed):
                 img = env.render(mode='rgb_array')
                 img = Image.fromarray(img)
                 img.save('./gif/{}.jpg'.format(t))
-            if done:
-                break
+            # if done:
+            #     break
 
     print('Episode: {}\tReward: {}'.format(ep, int(ep_reward)))
 
@@ -250,9 +250,8 @@ if __name__ == '__main__':
         # For storing box n whiskers data for all seeds + evals
         seed_rollouts_vec = []
         all_seed_rollouts_vec = {}
-
-        for exploration in ['goal', 'motor']:
-            for freq in all_frequencies:
+        for freq in all_frequencies:
+            for exploration in ['motor', 'goal']:
                 aggregated_datapoints = []
                 average_probabilities = []
 
@@ -292,6 +291,7 @@ if __name__ == '__main__':
         _, ax1 = plt.subplots()
         ax1.set_title('Log probabilities across methods.')
         labels, data = [*zip(*all_seed_rollouts_vec.items())]
+        print(data)
         ax1.boxplot(data)
         plt.xticks(range(1, len(labels) + 1), labels)
         figure_name = 'box_and_whiskers_for_probs.png'
