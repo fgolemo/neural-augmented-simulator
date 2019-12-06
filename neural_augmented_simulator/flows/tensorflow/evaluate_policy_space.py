@@ -58,9 +58,9 @@ def evaluate(model_to_load, args, seed):
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
 
-    n_episodes = 10
+    n_episodes = 25
     # max timesteps in one episode
-    max_timesteps = 1500
+    max_timesteps = 100
 
     # constant std for action distribution (Multivariate Normal)
     action_std = 0.5
@@ -100,8 +100,8 @@ def evaluate(model_to_load, args, seed):
             if done:
                 break
 
-        print('Episode: {}\tReward: {}'.format(ep, int(ep_reward)))
-        ep_reward = 0
+    print('Episode: {}\tReward: {}'.format(ep, int(ep_reward)))
+
     env.close()
     return np.asarray(data_points)
 
@@ -295,4 +295,5 @@ if __name__ == '__main__':
         ax1.boxplot(data)
         plt.xticks(range(1, len(labels) + 1), labels)
         figure_name = 'box_and_whiskers_for_probs.png'
+        ax1.set_ylim(0, 1)
         plt.savefig(figure_name)
