@@ -16,6 +16,7 @@ from neural_augmented_simulator.flows.tensorflow import density_estimator
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 plt.rcParams.update({'font.size': 10})
 
+tf.set_random_seed(0)
 
 color2num = dict(
     gray=30,
@@ -160,7 +161,7 @@ def setup_and_rollout(exploration, freq, seed):
     sess = tf.InteractiveSession(config=config)
 
     _, _, learned_dist = density_estimator.setup_and_train_maf(
-        train=False)
+        skip_train=True)
 
     sess.run(tf.global_variables_initializer())
 
@@ -240,16 +241,14 @@ if __name__ == '__main__':
             plt.savefig(figure_name)
 
     else:
+        # Evaluate per method, plot box plots with uncertainty
+        # across 3 seeds, and policy evaluation rollouts
         densities = {}
 
-        avg_probs_per_method = {}
-        avg_probs_per_method_arr = []
-
+        # For storing box n whiskers data for all seeds + evals
         seed_rollouts_vec = []
         all_seed_rollouts_vec = {}
-        _, ax1 = plt.subplots()
 
-        ax1.set_title('Log probabilities across methods.')
         for exploration in ['goal', 'motor']:
             for freq in all_frequencies:
                 aggregated_datapoints = []
@@ -272,33 +271,26 @@ if __name__ == '__main__':
                 all_seed_rollouts_vec.update({col_name: seed_rollouts_vec})
                 seed_rollouts_vec = []
 
+                # Evaluate all the aggregared points across all seeds
+                aggregated_datapoints = np.concatenate(
+                    aggregated_datapoints, axis=0)
+
+                avg_probs = evaluate_points(
+                    aggregated_datapoints, learned_dist, sess, seed)
+
+                densities.update({col_name: avg_probs})
+                plt.bar(*zip(*densities.items()))
+                plt.ylabel('Average Probabilities')
+                title = 'Rollout point probabilities averaged across all seeds.'
+                plt.suptitle(title)
+                figure_name = 'Avg_probs_across_all_seeds.png'
+                plt.savefig(figure_name)
+
+        plt.clf()
+        _, ax1 = plt.subplots()
+        ax1.set_title('Log probabilities across methods.')
         labels, data = [*zip(*all_seed_rollouts_vec.items())]
         ax1.boxplot(data)
         plt.xticks(range(1, len(labels) + 1), labels)
         figure_name = 'box_and_whiskers_for_probs.png'
         plt.savefig(figure_name)
-
-        # aggregated_datapoints = np.concatenate(
-        #     aggregated_datapoints, axis=0)
-        # msg = 'Stats based aggregated points: '
-        # print(colorize(msg, 'cyan', bold=True))
-        # evaluate_points(aggregated_datapoints, learned_dist, sess)
-
-        # avg_probs = evaluate_points(
-        #     data_points, learned_dist, sess, seed)
-        # average_probabilities.append(avg_probs)
-
-        # col_name = exploration + '_' + str(freq)
-        # densities.update({col_name: avg_probs})
-        # avg_probs_per_method.update({col_name: average_probabilities})
-        # pdb.set_trace()
-        # avg_probs_per_method_arr.append(average_probabilities)
-
-        # plt.clf()
-
-        # plt.bar(*zip(*densities.items()))
-        # plt.ylabel('Average Probabilities')
-        # title = 'Rollout point probabilities averaged across all seeds.'
-        # plt.suptitle(title)
-        # figure_name = 'Avg_probs_across_all_seeds.png'
-        # plt.savefig(figure_name)
