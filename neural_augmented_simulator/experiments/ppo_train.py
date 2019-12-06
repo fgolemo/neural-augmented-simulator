@@ -21,7 +21,7 @@ render = False
 solved_reward = 300         # stop training if avg_reward > solved_reward
 log_interval = 20           # print avg reward in the interval
 max_episodes = 5000        # max training episodes
-max_timesteps = 100        # max timesteps in one episode
+max_timesteps = 1500        # max timesteps in one episode
 
 update_timestep = 4000      # update policy every n timesteps
 action_std = 0.5            # constant std for action distribution (Multivariate Normal)

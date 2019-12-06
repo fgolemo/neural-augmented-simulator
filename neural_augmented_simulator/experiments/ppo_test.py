@@ -20,8 +20,8 @@ env = gym.make(env_name)
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.shape[0]
 
-n_episodes = 10  # num of episodes to run
-max_timesteps = 1500  # max timesteps in one episode
+n_episodes = 50  # num of episodes to run
+max_timesteps = 100  # max timesteps in one episode
 render = True  # render the environment
 save_gif = False  # png images are saved in gif folder
 
@@ -69,6 +69,6 @@ for app in approach:
                     img = env.render(mode='rgb_array')
                     img = Image.fromarray(img)
                     img.save('./gif/{}.jpg'.format(t))
-                if done:
-                    break
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    # if done:
+        appr.append(ep_reward / n_episodes)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        #     break
         print('Episode: {}\tReward: {}'.format(ep, ep_reward / n_episodes))
