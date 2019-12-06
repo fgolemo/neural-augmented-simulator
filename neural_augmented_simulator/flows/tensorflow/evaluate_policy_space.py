@@ -1,3 +1,4 @@
+import pdb
 import argparse
 import tensorflow as tf
 import time
@@ -15,6 +16,7 @@ from neural_augmented_simulator.flows.tensorflow import density_estimator
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 plt.rcParams.update({'font.size': 10})
+
 
 color2num = dict(
     gray=30,
@@ -54,7 +56,7 @@ def evaluate(model_to_load, args, seed):
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
 
-    n_episodes = 25
+    n_episodes = 10
     # max timesteps in one episode
     max_timesteps = 1500
 
@@ -78,9 +80,6 @@ def evaluate(model_to_load, args, seed):
         model_to_load, map_location=torch.device('cpu')))
 
     data_points = []
-    env.seed(100 + seed)
-    torch.manual_seed(100 + seed)
-    np.random.seed(100 + seed)
     for ep in range(1, n_episodes + 1):
         ep_reward = 0
         state = env.reset()
@@ -98,6 +97,9 @@ def evaluate(model_to_load, args, seed):
                 img.save('./gif/{}.jpg'.format(t))
             if done:
                 break
+
+        print('Episode: {}\tReward: {}'.format(ep, int(ep_reward)))
+        ep_reward = 0
     env.close()
     return np.asarray(data_points)
 
@@ -132,7 +134,7 @@ def evaluate_points(data_points, learned_dist, sess, seed=None):
 
 
 def setup_and_rollout(exploration, freq, seed):
-    tf.set_random_seed(100 + seed)
+
     os.environ['approach'] = exploration + '-babbling'
     os.environ['variant'] = str(freq)
 
@@ -195,9 +197,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '--trained_env', type=str, default='Nas-ErgoReacherAugmented-Headless-MultiGoal-Halfdisk-Long-v2')
 
-    parser.add_argument('--all-seeds', action='store_true')
+    parser.add_argument('--single-seed-eval', action='store_true')
     parser.add_argument('--seed', type=int, default=1,
                         help='Used as the environment seed.')
+
+    parser.add_argument('--density-eval-itr', type=int, default=2,
+                        help='Number of rollouts for density evaluation.')
 
     parser.add_argument('-task', type=str, default='reacher')
 
@@ -212,55 +217,89 @@ if __name__ == '__main__':
 
     os.environ['task'] = args.task
 
-    for seed in all_seeds:
+    if args.single_seed_eval:
+        # Go through all seeded policies and evaluate once.
+        for seed in all_seeds:
+            densities = {}
+            for exploration in ['goal', 'motor']:
+                for freq in all_frequencies:
+                    learned_dist, sess, data_points = setup_and_rollout(
+                        exploration, freq, seed)
+
+                    avg_prob = evaluate_points(
+                        data_points, learned_dist, sess, seed)
+                    col_name = exploration + '_' + str(freq)
+                    densities.update({col_name: avg_prob})
+
+            plt.clf()
+            plt.bar(*zip(*densities.items()))
+            plt.ylabel('Average Probabilities')
+            title = 'Rollout point probabilities averaged for seed ' + \
+                str(seed)
+            plt.suptitle(title)
+            figure_name = 'Avg_probs_seed_' + str(seed) + '.png'
+            plt.savefig(figure_name)
+
+    else:
         densities = {}
-        for exploration in ['goal', 'motor']:
-            for freq in all_frequencies:
-                learned_dist, sess, data_points = setup_and_rollout(
-                    exploration, freq, seed)
 
-                avg_prob = evaluate_points(
-                    data_points, learned_dist, sess, seed)
-                col_name = exploration + '_' + str(freq)
-                densities.update({col_name: avg_prob})
+        avg_probs_per_method = {}
+        avg_probs_per_method_arr = []
 
-        plt.clf()
-        plt.bar(*zip(*densities.items()))
-        plt.ylabel('Average Probabilities')
-        title = 'Rollout point probabilities averaged for seed ' + \
-            str(seed)
-        plt.suptitle(title)
-        figure_name = 'Avg_probs_seed_' + str(seed) + '.png'
-        plt.savefig(figure_name)
+        seed_rollouts_vec = []
+        all_seed_rollouts_vec = {}
+        _, ax1 = plt.subplots()
 
-    if args.all_seeds:
-        # Ugly but let's just repeat the evaluations, this time storing data
-        # across seeds.
-        densities = {}
+        ax1.set_title('Log probabilities across methods.')
         for exploration in ['goal', 'motor']:
             for freq in all_frequencies:
                 aggregated_datapoints = []
+                average_probabilities = []
+
                 for seed in all_seeds:
-                    learned_dist, sess, data_points = setup_and_rollout(
-                        exploration, freq, seed)
-                    aggregated_datapoints.append(data_points)
+                    for eval_itr in range(args.density_eval_itr):
+                        learned_dist, sess, data_points = setup_and_rollout(
+                            exploration, freq, seed)
 
-                aggregated_datapoints = np.concatenate(
-                    aggregated_datapoints, axis=0)
-                msg = 'Stats based aggregated points: '
-                print(colorize(msg, 'cyan', bold=True))
-                evaluate_points(aggregated_datapoints, learned_dist, sess)
+                        # Evaluate current seed,rollout
+                        seed_per_rollout_prob = evaluate_points(
+                            data_points, learned_dist, sess, seed)
+                        seed_rollouts_vec.append(seed_per_rollout_prob)
 
-                avg_probs = evaluate_points(
-                    data_points, learned_dist, sess, seed)
+                        aggregated_datapoints.append(data_points)
+
+                # Now plot the box and whiskers per method, per freq
                 col_name = exploration + '_' + str(freq)
-                densities.update({col_name: avg_probs})
+                all_seed_rollouts_vec.update({col_name: seed_rollouts_vec})
+                seed_rollouts_vec = []
 
-                plt.clf()
-                plt.bar(*zip(*densities.items()))
-                plt.ylabel('Average Probabilities')
-                title = 'Rollout point probabilities averaged across all seeds.'
-                plt.suptitle(title)
-                figure_name = '/Avg_probs_across_all_seeds.png'
-                plt.savefig(os.getcwd() + figure_name)
-                print(os.getcwd() + figure_name)
+        labels, data = [*zip(*all_seed_rollouts_vec.items())]
+        ax1.boxplot(data)
+        plt.xticks(range(1, len(labels) + 1), labels)
+        figure_name = 'box_and_whiskers_for_probs.png'
+        plt.savefig(figure_name)
+
+        # aggregated_datapoints = np.concatenate(
+        #     aggregated_datapoints, axis=0)
+        # msg = 'Stats based aggregated points: '
+        # print(colorize(msg, 'cyan', bold=True))
+        # evaluate_points(aggregated_datapoints, learned_dist, sess)
+
+        # avg_probs = evaluate_points(
+        #     data_points, learned_dist, sess, seed)
+        # average_probabilities.append(avg_probs)
+
+        # col_name = exploration + '_' + str(freq)
+        # densities.update({col_name: avg_probs})
+        # avg_probs_per_method.update({col_name: average_probabilities})
+        # pdb.set_trace()
+        # avg_probs_per_method_arr.append(average_probabilities)
+
+        # plt.clf()
+
+        # plt.bar(*zip(*densities.items()))
+        # plt.ylabel('Average Probabilities')
+        # title = 'Rollout point probabilities averaged across all seeds.'
+        # plt.suptitle(title)
+        # figure_name = 'Avg_probs_across_all_seeds.png'
+        # plt.savefig(figure_name)
