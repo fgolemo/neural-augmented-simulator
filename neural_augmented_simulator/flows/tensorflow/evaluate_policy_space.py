@@ -54,7 +54,7 @@ def evaluate(model_to_load, args, seed):
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
 
-    n_episodes = 10
+    n_episodes = 25
     # max timesteps in one episode
     max_timesteps = 1500
 
@@ -78,6 +78,9 @@ def evaluate(model_to_load, args, seed):
         model_to_load, map_location=torch.device('cpu')))
 
     data_points = []
+    env.seed(100 + seed)
+    torch.manual_seed(100 + seed)
+    np.random.seed(100 + seed)
     for ep in range(1, n_episodes + 1):
         ep_reward = 0
         state = env.reset()
@@ -95,9 +98,6 @@ def evaluate(model_to_load, args, seed):
                 img.save('./gif/{}.jpg'.format(t))
             if done:
                 break
-
-        print('Episode: {}\tReward: {}'.format(ep, int(ep_reward)))
-        ep_reward = 0
     env.close()
     return np.asarray(data_points)
 
@@ -132,7 +132,7 @@ def evaluate_points(data_points, learned_dist, sess, seed=None):
 
 
 def setup_and_rollout(exploration, freq, seed):
-
+    tf.set_random_seed(100 + seed)
     os.environ['approach'] = exploration + '-babbling'
     os.environ['variant'] = str(freq)
 
@@ -261,5 +261,6 @@ if __name__ == '__main__':
                 plt.ylabel('Average Probabilities')
                 title = 'Rollout point probabilities averaged across all seeds.'
                 plt.suptitle(title)
-                figure_name = 'Avg_probs_across_all_seeds.png'
-                plt.savefig(figure_name)
+                figure_name = '/Avg_probs_across_all_seeds.png'
+                plt.savefig(os.getcwd() + figure_name)
+                print(os.getcwd() + figure_name)
