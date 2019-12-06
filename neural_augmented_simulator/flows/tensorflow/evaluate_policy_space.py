@@ -53,6 +53,8 @@ def evaluate(model_to_load, args, seed):
 
     env = gym.make(args.env)
     env.seed(seed + 100)
+    torch.manual_seed(seed + 100)
+    np.random.seed(seed + 100)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
 
@@ -154,7 +156,7 @@ def setup_and_rollout(exploration, freq, seed):
     env_name = args.trained_env
     trained_model_name = 'ppo_{}_{}_{}-babbling_'.format(env_name,
                                                          freq, exploration)
-
+    tf.set_random_seed(seed + 100)
     tf.reset_default_graph()
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
