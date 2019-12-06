@@ -1,4 +1,3 @@
-import pdb
 import argparse
 import tensorflow as tf
 import time

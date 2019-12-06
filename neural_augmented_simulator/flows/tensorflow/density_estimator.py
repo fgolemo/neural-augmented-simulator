@@ -94,9 +94,9 @@ def create_data_iter(input_data, np_dtype=np.float32, target_density='goal'):
     return dataset.make_one_shot_iterator()
 
 
-def setup_and_train_maf(train=True, data_iterator=None, target_density='goal', dtype=tf.float32):
+def setup_and_train_maf(data_iterator=None, skip_train=False, target_density='goal', dtype=tf.float32):
 
-    if train:
+    if not skip_train:
         x_samples = data_iterator.get_next()
 
     base_dist = tfd.MultivariateNormalDiag(loc=tf.zeros([2], dtype))
@@ -126,7 +126,7 @@ def setup_and_train_maf(train=True, data_iterator=None, target_density='goal', d
         samples_A.append(x)
         names.append(bijector.name)
 
-    if train:
+    if not skip_train:
         loss = -tf.reduce_mean(learned_dist.log_prob(x_samples))
         train_op = tf.train.AdamOptimizer(1e-4).minimize(loss)
         return loss, train_op, learned_dist
@@ -275,7 +275,6 @@ def main():
     parser.add_argument('--skip_train', action='store_true')
     args = parser.parse_args()
 
-    dtype = tf.float32
     np_dtype = np.float32
     target_density = args.target_density
     freq = args.freq
@@ -318,7 +317,8 @@ def main():
         data_iterator = create_data_iter(search_space,
                                          np_dtype, target_density)
 
-    loss, train_op, learned_dist = setup_and_train_maf(data_iterator)
+    loss, train_op, learned_dist = setup_and_train_maf(data_iterator,
+                                                       skip_train=skip_train)
 
     sess.run(tf.global_variables_initializer())
 
