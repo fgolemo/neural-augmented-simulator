@@ -210,7 +210,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--save-gif', action='store_true')
-    parser.add_argument('--point-scale', type=float, default=2.0)
+    parser.add_argument('--point-scale', type=float, default=0.0)
 
     args, unknown = parser.parse_known_args()
 

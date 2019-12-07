@@ -49,12 +49,26 @@ def load_data(freq=10, search_space='goal', points_scale=2.0):
         file_name = f'motor_positions_freq-{freq}.npy'
         pos_action_noise = np.load(file_path + file_name)
 
-        # plt.scatter(pos_action_noise[:, 0],
-        #             pos_action_noise[:, 1], s=10, color='blue')
-        # plt.savefig('motor_babble.png')
+        plt.scatter(pos_action_noise[:, 0],
+                    pos_action_noise[:, 1], s=10, color='blue')
+        fig_name = str(freq) + '_motor_babble.png'
+        plt.savefig(fig_name)
 
-        positions = pos_action_noise + points_scale
-        return positions, None
+        explored_positions = pos_action_noise  # + points_scale
+        plt.hist2d(explored_positions[:, 0],
+                   explored_positions[:, 1], bins=100)
+        #plt.xlim(-0.135, 0.0)
+        #plt.ylim(-0.081, 0.135)
+        plt.title("2D Histogram of end effector positions")
+        plt.savefig(fig_name)
+
+        # Load goal babble to get the search space
+        file_path = os.getcwd() + f'/data/freq{freq}/goal-babbling/'
+        file_name = f'goals_and_positions_freq-{freq}.npz'
+        pos_action_noise = np.load(file_path + file_name)
+        search_space = pos_action_noise['goals'] + points_scale
+
+        return search_space, explored_positions
 
 
 def plot_data(sampled_goals, search_space,
@@ -144,27 +158,31 @@ def evaluate_model(distribution, eval_data, sess, fig_path):
     log_scale_probs, probabilities, prob_then_log = sess.run(
         [log_scale_probs, probabilities, prob_then_log])
 
-    norm_probs = normalize_probs(probabilities)
+    # norm_probs = normalize_probs(probabilities)
 
     log_probs_norm = normalize_probs(log_scale_probs)
 
-    _, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(20, 8))
-
-    ax1.scatter(eval_data[:, 0], eval_data[:, 1],
-                c=np.squeeze(log_scale_probs))
-    ax1.set_title('Shifted Log Probabilities')
-
-    ax2.scatter(eval_data[:, 0], eval_data[:, 1],
-                c=np.squeeze(probabilities))
-    ax2.set_title('Probabilities')
-
-    ax3.scatter(eval_data[:, 0], eval_data[:, 1],
-                c=np.squeeze(norm_probs))
-    ax3.set_title('Normalized Probabilities')
-
-    ax4.scatter(eval_data[:, 0], eval_data[:, 1],
+    plt.scatter(eval_data[:, 0], eval_data[:, 1],
                 c=np.squeeze(log_probs_norm))
-    ax4.set_title('Normalized Shifted Log Probabilities')
+    plt.title('Norm Log Probabilities')
+
+    # _, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(20, 8))
+
+    # ax1.scatter(eval_data[:, 0], eval_data[:, 1],
+    #             c=np.squeeze(log_scale_probs))
+    # ax1.set_title('Shifted Log Probabilities')
+
+    # ax2.scatter(eval_data[:, 0], eval_data[:, 1],
+    #             c=np.squeeze(probabilities))
+    # ax2.set_title('Probabilities')
+
+    # ax3.scatter(eval_data[:, 0], eval_data[:, 1],
+    #             c=np.squeeze(norm_probs))
+    # ax3.set_title('Normalized Probabilities')
+
+    # ax4.scatter(eval_data[:, 0], eval_data[:, 1],
+    #             c=np.squeeze(log_probs_norm))
+    # ax4.set_title('Normalized Shifted Log Probabilities')
 
     fig_path = fig_path + '/density_evaluation.png'
     plt.savefig(fig_path)
@@ -279,7 +297,7 @@ def main():
     target_density = args.target_density
     freq = args.freq
     num_steps = int(settings[target_density]['train_iters'])
-    PT_SCALE = 2.0
+    PT_SCALE = 0.0
     NUM_SLASH = 30
 
     path = os.getcwd() + '/density_models/' + target_density + \
@@ -292,7 +310,9 @@ def main():
 
     skip_train = args.skip_train
 
-    sess = tf.InteractiveSession()
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    sess = tf.InteractiveSession(config=config)
 
     search_space, sampled_goals = load_data(freq=freq,
                                             search_space=target_density,
@@ -308,13 +328,13 @@ def main():
         goal_clusters = make_goal_clusters(None,
                                            goals)
 
-        plot_data(sampled_goals, search_space, path,
-                  goal_clusters, goals, display=False)
+        # plot_data(sampled_goals, search_space, path,
+        #           goal_clusters, goals, display=False)
 
         data_iterator = create_data_iter(sampled_goals,
                                          np_dtype, target_density)
     elif target_density == 'motor':
-        data_iterator = create_data_iter(search_space,
+        data_iterator = create_data_iter(sampled_goals,
                                          np_dtype, target_density)
 
     loss, train_op, learned_dist = setup_and_train_maf(data_iterator,

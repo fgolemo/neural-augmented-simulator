@@ -1,2 +1,2 @@
-model_checkpoint_path: "/usr/local/data/melfm/nas/neural-augmented-simulator/nas/flows/tensorflow/density_models/motor_2/checkpoints"
-all_model_checkpoint_paths: "/usr/local/data/melfm/nas/neural-augmented-simulator/nas/flows/tensorflow/density_models/motor_2/checkpoints"
+model_checkpoint_path: "/usr/local/data/melfm/nas/neural-augmented-simulator/neural_augmented_simulator/flows/tensorflow/density_models/motor_2/checkpoints"
+all_model_checkpoint_paths: "/usr/local/data/melfm/nas/neural-augmented-simulator/neural_augmented_simulator/flows/tensorflow/density_models/motor_2/checkpoints"
