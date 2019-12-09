@@ -46,6 +46,7 @@ class ErgoReacherAugmentedEnv(ErgoReacherEnv):
 
         self.model_path = os.path.join(os.getcwd() + f"/trained_models/lstm/{os.environ['task']}" +
                                        f"/model-exp1-h128-l3-v{os.environ['variant']}-{os.environ['approach']}-e5.pth")
+        self.goal = None
         if self.is_cuda:
             self.cuda_convert()
         self.load_model()
@@ -113,11 +114,14 @@ class ErgoReacherAugmentedEnv(ErgoReacherEnv):
     def render(self, mode='human', close=False):
         super().render()
 
+    def get_goal_pos(self):
+        return self.goal
+
 
 if __name__ == '__main__':
     import gym
     import time
-    env = gym.make("ErgoReacherAugmented-Headless-Simple-Halfdisk-v1")
+    env = gym.make("Nas-ErgoReacherAugmented-Graphical-MultiGoal-Halfdisk-Long-v2")
     obs = env.reset()
     print(obs)
     done = False
