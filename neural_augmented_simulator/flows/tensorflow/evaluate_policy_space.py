@@ -52,9 +52,9 @@ def evaluate(model_to_load, args, seed):
     print(colorize(msg, 'yellow', bold=True))
 
     env = gym.make(args.env)
-    env.seed(seed + 100)
-    torch.manual_seed(seed + 100)
-    np.random.seed(seed + 100)
+    env.seed(10)
+    torch.manual_seed(10)
+    np.random.seed(10)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
 
@@ -156,7 +156,7 @@ def setup_and_rollout(exploration, freq, seed):
     env_name = args.trained_env
     trained_model_name = 'ppo_{}_{}_{}-babbling_'.format(env_name,
                                                          freq, exploration)
-    tf.set_random_seed(seed + 100)
+    tf.set_random_seed(10)
     tf.reset_default_graph()
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -289,11 +289,11 @@ if __name__ == '__main__':
 
         plt.clf()
         _, ax1 = plt.subplots()
-        ax1.set_title('Log probabilities across methods.')
+        ax1.set_title('Log probabilities across methods | {}'.format(args.env))
         labels, data = [*zip(*all_seed_rollouts_vec.items())]
         print(data)
         ax1.boxplot(data)
         plt.xticks(range(1, len(labels) + 1), labels)
-        figure_name = 'box_and_whiskers_for_probs.png'
+        figure_name = 'box_and_whiskers_for_probs_augment.png'
         ax1.set_ylim(0, 1)
         plt.savefig(figure_name)

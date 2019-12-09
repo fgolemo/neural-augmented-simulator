@@ -7,7 +7,7 @@ import os
 robot = SingleRobot(debug=False) # 6DOF Reacher Robot
 args = get_args()
 
-file_path = os.getcwd() + '/data/robot_recordings/{}/freq{}/{}'.format(args.env_name, args.freq, args.approach)
+file_path = '/home/sharath/neural-augmented-simulator/neural_augmented_simulator/flows/tensorflow/data/freq{}/motor-babbling'.format(args.freq)
 
 if not os.path.isdir(file_path):
     os.makedirs(file_path)
@@ -53,7 +53,7 @@ for epi in range(total_steps):
         sim_trajectories[epi, :] = 0
 
 final_pos = np.asarray(end_pos)
-end_pos_path = file_path + '/random_end_pos_{}.npy'.format(args.freq)
+end_pos_path = file_path + '/motor_positions_freq-{}.npy'.format(args.freq)
 np.save(end_pos_path, final_pos)
 plt.scatter(final_pos[:, 0], final_pos[:, 1], alpha=0.5)
 plt.show()

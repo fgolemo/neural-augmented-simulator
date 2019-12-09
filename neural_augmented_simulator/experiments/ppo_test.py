@@ -7,6 +7,7 @@ from neural_augmented_simulator.common.agent.actor_critic import Memory
 from PIL import Image
 from neural_augmented_simulator.arguments import get_args
 import torch
+import matplotlib.pyplot as plt
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -20,7 +21,7 @@ env = gym.make(env_name)
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.shape[0]
 
-n_episodes = 50  # num of episodes to run
+n_episodes = 25  # num of episodes to run
 max_timesteps = 100  # max timesteps in one episode
 render = True  # render the environment
 save_gif = False  # png images are saved in gif folder
@@ -39,36 +40,50 @@ betas = (0.9, 0.999)
 memory = Memory()
 ppo = PPO(state_dim, action_dim, action_std,
           lr, betas, gamma, K_epochs, eps_clip)
-torch.manual_seed(100)
-np.random.seed(100)
 seed = [1, 2, 3]
+freq = [1, 2, 10]
 approach = ["motor-babbling", "goal-babbling"]
-for app in approach:
-    for s in seed:
-        ep_reward = 0
-        env.seed(100 + s)
-        filename = '/ppo_{}_{}_{}_{}.pth'.format(args.env_name,
-                                                 args.variant,
-                                                 app,
-                                                 s)
+avg_rew = []
+for f in freq:
+    for app in approach:
+        app_rew = []
+        for s in seed:
+            ep_reward = 0
+            env.seed(1000 + s)
+            filename = '/ppo_{}_{}_{}_{}.pth'.format(args.env_name,
+                                                     f,
+                                                     app,
+                                                     s)
 
-        directory = os.getcwd() + \
-                    '/trained_models/ppo/{}/Variant-{}'.format(app, args.variant)
-        print(filename)
-        ppo.policy_old.load_state_dict(torch.load(
-            directory + filename, map_location=torch.device('cpu')))
-        for ep in range(1, n_episodes + 1):
-            state = env.reset()
-            for t in range(max_timesteps):
-                action = ppo.select_action(state, memory)
-                state, reward, done, _ = env.step(action)
-                ep_reward += reward
-                if render:
-                    env.render()
-                if save_gif:
-                    img = env.render(mode='rgb_array')
-                    img = Image.fromarray(img)
-                    img.save('./gif/{}.jpg'.format(t))
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    # if done:
-        appr.append(ep_reward / n_episodes)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        #     break
-        print('Episode: {}\tReward: {}'.format(ep, ep_reward / n_episodes))
+            directory = os.getcwd() + \
+                        '/trained_models/ppo/{}/Variant-{}'.format(app, f)
+            print(filename)
+            torch.manual_seed(1000 + s)
+            np.random.seed(1000 + s)
+            ppo.policy_old.load_state_dict(torch.load(
+                directory + filename, map_location=torch.device('cpu')))
+            for ep in range(1, n_episodes + 1):
+                state = env.reset()
+                for t in range(max_timesteps):
+                    action = ppo.select_action(state, memory)
+                    state, reward, done, _ = env.step(action)
+                    ep_reward += reward
+                    if render:
+                        env.render()
+                    if save_gif:
+                        img = env.render(mode='rgb_array')
+                        img = Image.fromarray(img)
+                        img.save('./gif/{}.jpg'.format(t))
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        # if done:
+            print('Episode: {}\tReward: {}'.format(ep, ep_reward / n_episodes))
+            app_rew.append(ep_reward / n_episodes)
+        avg_rew.append(app_rew)
+
+print(avg_rew)
+labels = ["mb-1", "gb-1", "mb-2", "gb-2", "mb-10", "gb-10"]
+fig1, ax1 = plt.subplots()
+ax1.set_title('Evaluation of PPO in simulator (augmented)')
+ax1.set_ylabel('Average Reward')
+ax1.set_xlabel(labels)
+ax1.boxplot(avg_rew)
+plt.show()

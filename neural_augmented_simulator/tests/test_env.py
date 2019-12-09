@@ -22,7 +22,8 @@ match_env(env_sim, env_real)
 action = np.ones((env_sim.action_space.shape[0]))
 sim_ob = []
 for _ in range(10000):
-    obs_sim, rew, done, _ = env_sim.step(env_sim.action_space.sample())
+    action = env_sim.action_space.sample()
+    obs_sim, rew, done, _ = env_sim.step(action)
     sim_ob.append(list(obs_sim[6:8]))
 
     # obs_real, _, _, _ = env_real.step(action)
@@ -33,8 +34,3 @@ for _ in range(10000):
         env_sim.reset()
         env_real.reset()
     # env_sim.render()
-print(sim_ob)
-print(np.max(np.asarray(sim_ob)[:, 0]))
-print(np.min(np.asarray(sim_ob)[:, 0]))
-print(np.max(np.asarray(sim_ob)[:, 1]))
-print(np.min(np.asarray(sim_ob)[:, 1]))

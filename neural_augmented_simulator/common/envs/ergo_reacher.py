@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from gym_ergojr.sim.objects import Ball
 from gym_ergojr.envs.ergo_reacher_env import ErgoReacherEnv
-
+import neural_augmented_simulator
 
 GOAL_REACHED_DISTANCE = -0.016  # distance between robot tip and goal under which the task is considered solved
 RADIUS = 0.2022
@@ -42,6 +42,7 @@ class ErgoReacherNewEnv(ErgoReacherEnv):
             goals=goals,
             terminates=terminates,
             gripper=gripper)
+        self.goal = None
 
     def reset(self, forced=False):
         return super().reset()
@@ -52,6 +53,9 @@ class ErgoReacherNewEnv(ErgoReacherEnv):
     def get_tip(self):
         return self.robot.get_tip()
 
+    def get_goal_pos(self):
+        return self.goal
+
 
 if __name__ == '__main__':
     import gym
@@ -60,7 +64,7 @@ if __name__ == '__main__':
     import neural_augmented_simulator
 
     # MODE = "manual"
-    env = gym.make("ErgoReacherNew-Graphical-MultiGoal-Halfdisk-Long-v2")
+    env = gym.make("Nas-ErgoReacher-Graphical-MultiGoal-Halfdisk-Long-v2")
 
     MODE = "manual"
     # env = gym.make("ErgoReacher-Graphical-Simple-Halfdisk-v1")
@@ -87,7 +91,7 @@ if __name__ == '__main__':
             if MODE == "manual":
                 # print("act {}, obs {}, rew {}, done {}".format(
                 #     action, obs, rew, done))
-                print(env.unwrapped.get_tip()[0][1:])
+                print(env.unwrapped.get_goal_pos())
                 time.sleep(0.01)
 
             if MODE == "timings":

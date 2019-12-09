@@ -13,7 +13,7 @@ np.random.seed(seed=args.seed)
 
 total_steps = args.total_steps
 rest_interval = args.rest_interval
-freq = 10
+freq = args.freq
 steps_until_resample = args.num_steps/freq
 
 # Hyper-parameters

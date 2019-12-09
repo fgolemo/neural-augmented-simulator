@@ -38,9 +38,7 @@ class PusherVanillaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         # vec_1 = self.get_body_com("object") - self.get_body_com("tips_arm")
         vec_2 = self.get_body_com("object") - self.get_body_com("goal")
 
-        a = 3 * np.clip(
-            npa(action), -1, 1
-        )  # important - in the original env the range of actions is doubled
+        # important - in the original env the range of actions is doubled
 
         # reward_near = - np.linalg.norm(vec_1)
         reward_dist = -np.linalg.norm(vec_2)
@@ -49,7 +47,7 @@ class PusherVanillaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         # reward = reward_dist + 0.1 * reward_ctrl
         reward = reward_dist
 
-        self.do_simulation(a, self.frame_skip)
+        self.do_simulation(action, self.frame_skip)
         ob = self._get_obs()
         done = False
 
@@ -166,11 +164,11 @@ if __name__ == '__main__':
 
     app = PusherCtrlGui(env)
 
-    #
-    # for i in range(100):
-    #     env.render()
-    #     action = env.action_space.sample()
-    #     print(action)
-    #     obs, reward, done, misc = env.step(action)
-    #     print(obs, reward, done, misc)
-    #     # time.sleep(1)
+
+    for i in range(100):
+        env.render()
+        action = env.action_space.sample()
+        print(action)
+        obs, reward, done, misc = env.step(action)
+        print(obs, reward, done, misc)
+        # time.sleep(1)
