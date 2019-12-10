@@ -82,9 +82,12 @@ def evaluate(model_to_load, args, seed):
         model_to_load, map_location=torch.device('cpu')))
 
     data_points = []
+    all_target_goals = []
     for ep in range(1, n_episodes + 1):
         ep_reward = 0
         state = env.reset()
+        target_goal_loc = env.unwrapped.get_goal_pos()[1:]
+        all_target_goals.append(target_goal_loc)
         for t in range(max_timesteps):
             action = ppo.select_action(state, memory)
             state, reward, done, _ = env.step(action)
@@ -103,10 +106,11 @@ def evaluate(model_to_load, args, seed):
     print('Episode: {}\tReward: {}'.format(ep, int(ep_reward)))
 
     env.close()
-    return np.asarray(data_points)
+    return np.asarray(data_points), np.asarray(all_target_goals)
 
 
-def evaluate_points(data_points, learned_dist, sess, seed=None):
+def evaluate_points(data_points, learned_dist, sess,
+                    target_goals=None, seed=None, fig_name=None):
 
     probabilities = sess.run(learned_dist.prob(data_points))
     norm_probs = density_estimator.normalize_probs(probabilities)
@@ -123,6 +127,20 @@ def evaluate_points(data_points, learned_dist, sess, seed=None):
     log_scale_probs = sess.run(
         density_estimator.shift_log_space(probabilities))
     log_probs_norm = density_estimator.normalize_probs(log_scale_probs)
+
+    _, ax1 = plt.subplots()
+
+    ax1.scatter(data_points[:, 0], data_points[:, 1],
+                c=np.squeeze(log_probs_norm))
+
+    ax1.set_title('Norm Log Probabilities.')
+    if target_goals is not None:
+        ax1.scatter(target_goals[:, 0],
+                    target_goals[:, 1], marker='^', c='red')
+        ax1.set_title('Norm Log Probabilities and target goal locations.')
+    if fig_name is not None:
+        fig_name = 'results/' + fig_name + '.png'
+        plt.savefig(fig_name)
 
     # Calculate stat
     print("-"*num_slash)
@@ -177,7 +195,7 @@ def setup_and_rollout(exploration, freq, seed):
 
     model = trained_model_path + \
         trained_model_name + str(seed) + '.pth'
-    data_points = evaluate(model, args, seed)
+    data_points, target_goals = evaluate(model, args, seed)
     # This is a slight hack as the data was trained by this shift scale
     # to avoid negative values. Better fix is to normalize the data
     # and then normalize back.
@@ -186,7 +204,7 @@ def setup_and_rollout(exploration, freq, seed):
     msg = 'Stats based on: ' + model
     print(colorize(msg, 'green', bold=True))
 
-    return learned_dist, sess, data_points
+    return learned_dist, sess, data_points, target_goals
 
 
 if __name__ == '__main__':
@@ -225,12 +243,13 @@ if __name__ == '__main__':
             densities = {}
             for exploration in ['goal', 'motor']:
                 for freq in all_frequencies:
-                    learned_dist, sess, data_points = setup_and_rollout(
+                    learned_dist, sess, data_points, target_goals = setup_and_rollout(
                         exploration, freq, seed)
 
-                    avg_prob = evaluate_points(
-                        data_points, learned_dist, sess, seed)
                     col_name = exploration + '_' + str(freq)
+                    avg_prob = evaluate_points(
+                        data_points, learned_dist, sess, target_goals,
+                        seed, col_name)
                     densities.update({col_name: avg_prob})
 
             plt.clf()
@@ -239,7 +258,7 @@ if __name__ == '__main__':
             title = 'Rollout point probabilities averaged for seed ' + \
                 str(seed)
             plt.suptitle(title)
-            figure_name = 'Avg_probs_seed_' + str(seed) + '.png'
+            figure_name = 'results/Avg_probs_seed_' + str(seed) + '.png'
             plt.savefig(figure_name)
 
     else:
@@ -256,16 +275,18 @@ if __name__ == '__main__':
                 average_probabilities = []
 
                 for seed in all_seeds:
-                    for eval_itr in range(args.density_eval_itr):
-                        learned_dist, sess, data_points = setup_and_rollout(
-                            exploration, freq, seed)
+                    # for eval_itr in range(args.density_eval_itr):
+                    learned_dist, sess, data_points, target_goals = setup_and_rollout(
+                        exploration, freq, seed)
 
-                        # Evaluate current seed,rollout
-                        seed_per_rollout_prob = evaluate_points(
-                            data_points, learned_dist, sess, seed)
-                        seed_rollouts_vec.append(seed_per_rollout_prob)
+                    # Evaluate current seed,rollout
+                    col_name = exploration + '_' + \
+                        str(freq) + '_seed_' + str(seed)
+                    seed_per_rollout_prob = evaluate_points(
+                        data_points, learned_dist, sess, target_goals, seed, col_name)
+                    seed_rollouts_vec.append(seed_per_rollout_prob)
 
-                        aggregated_datapoints.append(data_points)
+                    aggregated_datapoints.append(data_points)
 
                 # Now plot the box and whiskers per method, per freq
                 col_name = exploration + '_' + str(freq)
@@ -277,14 +298,14 @@ if __name__ == '__main__':
                     aggregated_datapoints, axis=0)
 
                 avg_probs = evaluate_points(
-                    aggregated_datapoints, learned_dist, sess, seed)
+                    aggregated_datapoints, learned_dist, sess, seed=seed)
 
                 densities.update({col_name: avg_probs})
                 plt.bar(*zip(*densities.items()))
                 plt.ylabel('Average Probabilities')
                 title = 'Rollout point probabilities averaged across all seeds.'
                 plt.suptitle(title)
-                figure_name = 'Avg_probs_across_all_seeds.png'
+                figure_name = 'results/Avg_probs_across_all_seeds.png'
                 plt.savefig(figure_name)
 
         plt.clf()
@@ -294,6 +315,8 @@ if __name__ == '__main__':
         print(data)
         ax1.boxplot(data)
         plt.xticks(range(1, len(labels) + 1), labels)
-        figure_name = 'box_and_whiskers_for_probs_augment.png'
+
+        figure_name = 'results/box_and_whiskers_for_probs.png'
+
         ax1.set_ylim(0, 1)
         plt.savefig(figure_name)
