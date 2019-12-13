@@ -18,7 +18,6 @@ experiment = Experiment(
 args = get_args()
 env_name = args.env_name
 render = False
-solved_reward = 300         # stop training if avg_reward > solved_reward
 log_interval = 20           # print avg reward in the interval
 max_episodes = 5000        # max training episodes
 max_timesteps = 1500        # max timesteps in one episode
@@ -41,8 +40,6 @@ os.environ['approach'] = args.approach
 os.environ['variant'] = args.variant
 os.environ['task'] = args.task
 
-torch.manual_seed(args.seed)
-np.random.seed(args.seed)
 random_seed = args.seed
 folder_path = os.getcwd() + '/trained_models/ppo/{}/Variant-{}/'.format(args.approach, args.variant)
 file_path = folder_path + '/ppo_{}_{}_{}_{}.pth'.format(args.env_name,
@@ -96,12 +93,6 @@ for i_episode in range(1, max_episodes +1):
             break
 
     avg_length += t
-
-    # stop training if avg_reward > solved_reward
-    if running_reward > (log_interval *solved_reward):
-        print("########## Solved! ##########")
-        torch.save(ppo.policy.state_dict(), file_path)
-        break
 
     # save every 500 episodes
     if i_episode % 500 == 0:
