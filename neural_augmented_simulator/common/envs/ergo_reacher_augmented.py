@@ -46,6 +46,7 @@ class ErgoReacherAugmentedEnv(ErgoReacherEnv):
         self.model_path = os.path.join(os.getcwd() + f"/trained_models/lstm/{os.environ['task']}" +
                                        f"/model-exp1-h128-l3-v{os.environ['variant']}-{os.environ['approach']}-e5.pth")
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.is_cuda = None
         if device == "cuda":
             self.is_cuda = True
         self.goal = None
