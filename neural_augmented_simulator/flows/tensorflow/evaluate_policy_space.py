@@ -137,7 +137,9 @@ def evaluate_points(data_points, learned_dist, sess,
     if target_goals is not None:
         ax1.scatter(target_goals[:, 0],
                     target_goals[:, 1], marker='^', c='red')
-        ax1.set_title('Norm Log Probabilities and target goal locations.')
+        ax1.set_title('Norm Log Probabilities and target goal locations | {}'.format(fig_name))
+        ax1.set_xlim(-0.15, 0.25)
+        ax1.set_ylim(0, 0.25)
     if fig_name is not None:
         fig_name = 'results/' + fig_name + '.png'
         plt.savefig(fig_name)
@@ -236,6 +238,8 @@ if __name__ == '__main__':
     all_seeds = [1, 2, 3]
 
     os.environ['task'] = args.task
+    if not os.path.isdir(os.getcwd() + '/results/'):
+        os.makedirs(os.getcwd() + '/results/')
 
     if args.single_seed_eval:
         # Go through all seeded policies and evaluate once.
@@ -316,7 +320,7 @@ if __name__ == '__main__':
         ax1.boxplot(data)
         plt.xticks(range(1, len(labels) + 1), labels)
 
-        figure_name = 'results/box_and_whiskers_for_probs.png'
+        figure_name = os.getcwd() + '/results/box_and_whiskers_for_probs.png'
 
         ax1.set_ylim(0, 1)
         plt.savefig(figure_name)
