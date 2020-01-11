@@ -305,6 +305,7 @@ if __name__ == '__main__':
                     aggregated_datapoints, learned_dist, sess, seed=seed)
 
                 densities.update({col_name: avg_probs})
+                print(*zip(*densities.items()))
                 plt.bar(*zip(*densities.items()))
                 plt.ylabel('Average Probabilities')
                 title = 'Rollout point probabilities averaged across all seeds.'
