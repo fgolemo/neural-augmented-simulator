@@ -135,3 +135,8 @@ nas/data/real_trajectories/*.hdf5
 nas/data/trained_models/*.pth
 *png
 ..bfg-report/
+*.pth
+*.pt
+*.npy
+*.npz
+*.pkl
