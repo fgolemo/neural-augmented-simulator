@@ -11,7 +11,6 @@ import os
 
 from sklearn.preprocessing import MinMaxScaler
 
-
 tfd = tf.contrib.distributions
 tfb = tfd.bijectors
 layers = tf.contrib.layers
@@ -29,7 +28,12 @@ settings = {
         'batch_size': 100,
         'num_bijectors': 4,
         'train_iters': 2e4
-    }
+    },
+    'trajectory': {
+        'batch_size': 128,
+        'num_bijectors': 6,
+        'train_iters': 4e4
+    },
 }
 
 
@@ -69,6 +73,39 @@ def load_data(freq=10, search_space='goal', points_scale=2.0):
         search_space = pos_action_noise['goals'] + points_scale
 
         return search_space, explored_positions
+    elif search_space == 'trajectory':
+        
+        file_name = os.getcwd() + \
+            f'/data/01-reacher-goal-babbling-recordings.npz'
+        recordings = np.load(file_name)
+
+        #actions = recordings["actions"]
+        sim_trajectories = recordings["sim_trajectories"]
+        #real_trajectories = recordings["real_trajectories"]
+
+        traj_len = sim_trajectories.shape[1]
+        traj_concat_len = traj_len * 2
+        total_traj = sim_trajectories.shape[0]
+        step_size = 12
+        flatten_size = traj_len * total_traj
+        total_len = int(flatten_size/step_size) - int(traj_concat_len/step_size)
+
+        indexer = np.arange(traj_concat_len)[None, :] + step_size * np.arange(total_len)[:, None]
+
+        sim_traj_flat = sim_trajectories.flatten()
+        sim_window_traj = sim_traj_flat[indexer]
+        min_max_diff = np.max(sim_window_traj) - np.min(sim_window_traj)
+        sim_window_traj_norm = (sim_window_traj - np.min(sim_window_traj))/ min_max_diff
+
+        # TODO: Test on both clean and noisy data
+        # Add noise for testing purposes
+        mu, sigma = 5.0, 0.1
+        sim_trajectories_modified = sim_window_traj + np.random.normal(mu, sigma, sim_window_traj.shape)
+        min_max_diff = np.max(sim_trajectories_modified) - np.min(sim_trajectories_modified)
+        sim_trajectories_modified = (sim_trajectories_modified - np.min(sim_trajectories_modified))/ min_max_diff
+
+        return sim_trajectories_modified, sim_window_traj_norm
+
 
 
 def plot_data(sampled_goals, search_space,
@@ -95,7 +132,7 @@ def plot_data(sampled_goals, search_space,
 
     if display:
         plt.show()
-    fig_path = fig_path + '/input_data.png'
+    fig_path = fig_path + '/input_data_March06.png'
     plt.savefig(fig_path)
 
 
@@ -110,10 +147,12 @@ def create_data_iter(input_data, np_dtype=np.float32, target_density='goal'):
 
 def setup_and_train_maf(data_iterator=None, skip_train=False, target_density='goal', dtype=tf.float32):
 
+    dim = 24
     if not skip_train:
         x_samples = data_iterator.get_next()
 
-    base_dist = tfd.MultivariateNormalDiag(loc=tf.zeros([2], dtype))
+    
+    base_dist = tfd.MultivariateNormalDiag(loc=tf.zeros([dim], dtype))
 
     num_bijectors = settings[target_density]['num_bijectors']
     bijectors = []
@@ -123,7 +162,8 @@ def setup_and_train_maf(data_iterator=None, skip_train=False, target_density='go
         bijectors.append(tfb.MaskedAutoregressiveFlow(
             shift_and_log_scale_fn=tfb.masked_autoregressive_default_template(
                 hidden_layers=[512, 512])))
-        bijectors.append(tfb.Permute(permutation=[1, 0]))
+        #bijectors.append(tfb.Permute(permutation=[1, 0]))
+        bijectors.append(tfb.Permute(permutation=list(range(0, dim))[::-1]))
     # Discard the last Permute layer.
     flow_bijector = tfb.Chain(list(reversed(bijectors[:-1])))
 
@@ -131,18 +171,18 @@ def setup_and_train_maf(data_iterator=None, skip_train=False, target_density='go
         distribution=base_dist,
         bijector=flow_bijector)
 
-    # For visualization
-    x = base_dist.sample(8000)
-    samples_A = [x]
-    names = [base_dist.name]
-    for bijector in reversed(learned_dist.bijector.bijectors):
-        x = bijector.forward(x)
-        samples_A.append(x)
-        names.append(bijector.name)
-
     if not skip_train:
-        loss = -tf.reduce_mean(learned_dist.log_prob(x_samples))
-        train_op = tf.train.AdamOptimizer(1e-4).minimize(loss)
+        # As we add more dimensionality to the input, training becomes
+        # highly unstable. The jacobian gradient penalty helps to establize things. 
+        neg_log_prob = tf.clip_by_value(-learned_dist.log_prob(x_samples), -1e5, 1e5)
+        neg_log_prob = tf.reduce_mean(tf.reshape(neg_log_prob, (-1, 1)))
+        jacobian = tf.gradients(neg_log_prob, x_samples)
+        regularizer = tf.norm(jacobian[0], ord=2)
+        prm_loss_weight = 1.0
+        reg_loss_weight = 1000.0
+        loss = prm_loss_weight * neg_log_prob + reg_loss_weight * regularizer
+        #loss = -tf.reduce_mean(learned_dist.log_prob(x_samples))
+        train_op = tf.train.AdamOptimizer(2e-4).minimize(loss)
         return loss, train_op, learned_dist
     else:
         return None, None, learned_dist
@@ -150,19 +190,32 @@ def setup_and_train_maf(data_iterator=None, skip_train=False, target_density='go
 
 def evaluate_model(distribution, eval_data, sess, fig_path):
 
-    probabilities = distribution.prob(eval_data)
+    from sklearn.manifold import TSNE
+    # The data is too large and fitting tsne takes too much time
+    # so we just pick a subset of data for validation.
+    samples = 20000
+    modified_eval = eval_data[0:samples]
+    # Not the best form of validation, but just to visualize
+    # something to make sure the output probabilities make sense.
+    print('Running tsne ...')
+    X_embedded = TSNE(n_components=2).fit_transform(modified_eval)
+    print('Done')
+
+    probabilities = distribution.prob(modified_eval)
     prob_then_log = tf.log(probabilities)
 
     log_scale_probs = shift_log_space(probabilities)
 
+   
     log_scale_probs, probabilities, prob_then_log = sess.run(
         [log_scale_probs, probabilities, prob_then_log])
-
+    # print(probabilities)
     # norm_probs = normalize_probs(probabilities)
 
+    
     log_probs_norm = normalize_probs(log_scale_probs)
 
-    plt.scatter(eval_data[:, 0], eval_data[:, 1],
+    plt.scatter(X_embedded[:, 0], X_embedded[:, 1],
                 c=np.squeeze(log_probs_norm))
     plt.title('Norm Log Probabilities')
 
@@ -288,7 +341,7 @@ def make_circle_cluster(center_x, center_y,
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--target_density', type=str, default='goal')
+    parser.add_argument('--target_density', type=str, default='trajectory')
     parser.add_argument('--freq', type=int, default=10)
     parser.add_argument('--skip_train', action='store_true')
     args = parser.parse_args()
@@ -336,6 +389,9 @@ def main():
     elif target_density == 'motor':
         data_iterator = create_data_iter(sampled_goals,
                                          np_dtype, target_density)
+    elif target_density == 'trajectory':
+        data_iterator = create_data_iter(sampled_goals,
+                np_dtype, target_density)        
 
     loss, train_op, learned_dist = setup_and_train_maf(data_iterator,
                                                        skip_train=skip_train)
@@ -375,15 +431,16 @@ def main():
     if skip_train:
         saver.restore(sess, model_path)
 
+    plt.clf()
     evaluate_model(learned_dist,
                    search_space,
                    sess,
                    path)
 
-    if target_density == 'goal':
-        test_goal_targets(learned_dist,
-                          goal_clusters,
-                          sess)
+    # if target_density == 'goal':
+    #     test_goal_targets(learned_dist,
+    #                       goal_clusters,
+    #                       sess)
 
 
 if __name__ == "__main__":
